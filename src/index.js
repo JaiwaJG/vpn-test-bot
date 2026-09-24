@@ -258,22 +258,22 @@ async function handleCallback(cb, env) {
     await tg(env, "answerCallbackQuery", { callback_query_id: callbackId });
 
     const pricingMsg = 
-      `⚡️ <b>Outline VPN Premium Package ဈေးနှုန်းများ</b> ⚡️\n\n` +
-      `လိုင်းဆွဲအား မြန်ဆန်ပြီး Security စိတ်ချရသော High-speed Servers များကို အသုံးပြုနိုင်ပါသည်။\n\n` +
+      `⚡️ <b>Outline VPN Private Key ဈေးနှုန်းများ</b> \n\n` +
+      `လိုင်းဆွဲအား မြန်ဆန်ပြီး Security စိတ်ချရသော High-Speed Singapore Servers များကို အသုံးပြုနိုင်ပါသည်။\n\n` +
       `💎 <b>Package စာရင်းများ:</b>\n` +
       `━━━━━━━━━━━━━━━━━\n` +
-      `🔹 <b>၁ လ သက်တမ်း (1 Month)</b>\n` +
-      `• ဈေးနှုန်း: <b>5,000 MMK</b>\n` +
-      `• Unlimited Data | High Speed\n\n` +
-      `🔹 <b>၃ လ သက်တမ်း (3 Months)</b>\n` +
-      `• ဈေးနှုန်း: <b>13,000 MMK</b> (သက်သာ)\n` +
-      `• Unlimited Data | High Speed\n\n` +
-      `🔹 <b>၆ လ သက်တမ်း (6 Months)</b>\n` +
-      `• ဈေးနှုန်း: <b>25,000 MMK</b> (လူကြိုက်အများဆုံး)\n` +
-      `• Unlimited Data | VIP Support\n` +
+      `🔹 <b> ၃၀ ရက် သက်တမ်း (30 Days)</b>\n` +
+      `• ဈေးနှုန်း: <b>2,500 MMK</b>\n` +
+      `• 50 GB | High Speed\n\n` +
+      `🔹 <b> ၃၅ ရက် သက်တမ်း (35 Days)</b>\n` +
+      `• ဈေးနှုန်း: <b>4,500 MMK</b> (သက်သာ)\n` +
+      `• 100 GB | High Speed\n\n` +
+      `🔹 <b> ၇၅ ရက် သက်တမ်း (75 Days)</b>\n` +
+      `• ဈေးနှုန်း: <b>10,500 MMK</b> (လူကြိုက်အများဆုံး)\n` +
+      `• 250 GB | High Speed\n` +
       `━━━━━━━━━━━━━━━━━\n\n` +
       `🛒 <b>ဝယ်ယူရန် သို့မဟုတ် စုံစမ်းရန်:</b>\n` +
-      `အောက်ပါ <b>Contact Admin</b> ခလုတ်ကို နှိပ်၍ တိုက်ရိုက် ဆက်သွယ်ဝယ်ယူနိုင်ပါသည် 👇`;
+      `အောက်ပါ <b>Contact Admin</b> ခလုတ်ကို နှိပ်၍ တိုက်ရိုက် ဆက်သွယ်ဝယ်ယူနိုင်ပါတယ် ခင်ဗျ။ 🤍 👇`;
 
     await editMessage(
       pricingMsg,
