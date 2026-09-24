@@ -1,0 +1,8 @@
+name = "vpn-test-bot"
+main = "src/index.js"
+compatibility_date = "2024-01-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "vpn_db"
+database_id = "3b301fb5-ae61-480b-8696-7d7c7fdd5a30"
