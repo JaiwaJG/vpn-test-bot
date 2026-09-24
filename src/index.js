@@ -43,6 +43,52 @@ function formatMyanmarTime(dateObj) {
   }).format(dateObj);
 }
 
+// User ရဲ့ လက်ရှိ အခြေအနေပေါ်မူတည်ပြီး Dynamic Start Menu ဆောက်ပေးသည့် function
+async function getStartMenu(env, userId) {
+  const user = await env.DB.prepare(
+    "SELECT last_claimed_at, current_key FROM users WHERE telegram_id = ?"
+  ).bind(userId).first();
+
+  let isClaimedAndActive = false;
+  if (user && user.last_claimed_at && user.current_key) {
+    const lastClaimDate = new Date(user.last_claimed_at.replace(" ", "T") + "Z");
+    const nextAvailableDate = new Date(lastClaimDate.getTime() + 30 * 24 * 60 * 60 * 1000);
+    if (new Date() < nextAvailableDate) {
+      isClaimedAndActive = true;
+    }
+  }
+
+  let inlineKeyboard = [];
+  if (isClaimedAndActive) {
+    inlineKeyboard = [
+      [{ text: "🔑 ကျွန်ုပ်၏ Key ပြန်လည်ကြည့်ရှုမည်", callback_data: "view_my_key" }],
+      [
+        { text: "ℹ️ ကျွန်ုပ်၏ Status စစ်ဆေးမည်", callback_data: "check_my_status" },
+        { text: "📖 Key ထည့်သွင်းနည်း", callback_data: "how_to_use" }
+      ],
+      [{ text: "💰 VPN ဈေးနှုန်းများ ကြည့်ရှုမည်", callback_data: "view_pricing" }],
+      adminButton
+    ];
+  } else {
+    inlineKeyboard = [
+      [{ text: "🎁 Test Key ရယူမည်", callback_data: "get_test_key" }],
+      [{ text: "ℹ️ ကျွန်ုပ်၏ Status စစ်ဆေးမည်", callback_data: "check_my_status" }],
+      [{ text: "💰 VPN ဈေးနှုန်းများ ကြည့်ရှုမည်", callback_data: "view_pricing" }],
+      adminButton
+    ];
+  }
+
+  const welcomeText = 
+    `👋 <b>မင်္ဂလာပါ!</b>\n\n` +
+    `Outline VPN Test Key များကို ဤနေရာတွင် အခမဲ့ ရယူနိုင်ပါသည်။\n\n` +
+    `📌 <b>စည်းကမ်းချက်များ:</b>\n` +
+    `• User တစ်ယောက်လျှင် <b>(၁) လ လျှင် (၁) ကြိမ်သာ</b> ရယူနိုင်ပါသည်။\n` +
+    `• ရရှိလာသော Key ကို တစ်ဦးတည်းသာ အသုံးပြုရပါမည်။\n\n` +
+    `လိုရာ ရွေးချယ်နိုင်ပါသည် 👇`;
+
+  return { text: welcomeText, reply_markup: { inline_keyboard: inlineKeyboard } };
+}
+
 // Messages & Admin Commands Handling
 async function handleMessage(msg, env) {
   const chatId = msg.chat.id;
@@ -52,54 +98,12 @@ async function handleMessage(msg, env) {
 
   // --- USER SIDE: /start ---
   if (text === "/start") {
-    // User ရဲ့ အခြေအနေကို DB မှာ အရင်စစ်ဆေးခြင်း
-    const user = await env.DB.prepare(
-      "SELECT last_claimed_at, current_key FROM users WHERE telegram_id = ?"
-    ).bind(userId).first();
-
-    let isClaimedAndActive = false;
-    if (user && user.last_claimed_at && user.current_key) {
-      const lastClaimDate = new Date(user.last_claimed_at.replace(" ", "T") + "Z");
-      const nextAvailableDate = new Date(lastClaimDate.getTime() + 30 * 24 * 60 * 60 * 1000);
-      if (new Date() < nextAvailableDate) {
-        isClaimedAndActive = true;
-      }
-    }
-
-    let inlineKeyboard = [];
-
-    if (isClaimedAndActive) {
-      // Key ယူထားပြီးသား User တွေအတွက် Menu
-      inlineKeyboard = [
-        [{ text: "🔑 ကျွန်ုပ်၏ Key ပြန်လည်ကြည့်ရှုမည်", callback_data: "view_my_key" }],
-        [
-          { text: "ℹ️ ကျွန်ုပ်၏ Status စစ်ဆေးမည်", callback_data: "check_my_status" },
-          { text: "📖 Key ထည့်သွင်းနည်း", callback_data: "how_to_use" }
-        ],
-        adminButton
-      ];
-    } else {
-      // Key မယူရသေးတဲ့ User တွေအတွက် Menu
-      inlineKeyboard = [
-        [{ text: "🎁 Test Key ရယူမည်", callback_data: "get_test_key" }],
-        [{ text: "ℹ️ ကျွန်ုပ်၏ Status စစ်ဆေးမည်", callback_data: "check_my_status" }],
-        adminButton
-      ];
-    }
-
-    const welcomeText = 
-      `👋 <b>မင်္ဂလာပါ ${msg.from.first_name || ""}!</b>\n\n` +
-      `Outline VPN Test Key များကို ဤနေရာတွင် အခမဲ့ ရယူနိုင်ပါသည်။\n\n` +
-      `📌 <b>စည်းကမ်းချက်များ:</b>\n` +
-      `• User တစ်ယောက်လျှင် <b>(၁) လ လျှင် (၁) ကြိမ်သာ</b> ရယူနိုင်ပါသည်။\n` +
-      `• ရရှိလာသော Key ကို တစ်ဦးတည်းသာ အသုံးပြုရပါမည်။\n\n` +
-      `လိုရာ ရွေးချယ်နိုင်ပါသည် 👇`;
-
+    const startData = await getStartMenu(env, userId);
     await tg(env, "sendMessage", {
       chat_id: chatId,
-      text: welcomeText,
+      text: startData.text,
       parse_mode: "HTML",
-      reply_markup: { inline_keyboard: inlineKeyboard },
+      reply_markup: startData.reply_markup,
     });
     return;
   }
@@ -165,7 +169,7 @@ async function handleMessage(msg, env) {
     }
   }
 
-  // File (.txt) ဖြင့် Key ထည့်ခြင်း (Admin Group)
+  // File (.txt) ဖြင့် Key ထည့်ခြင်း
   if (chatId === adminId && msg.document && msg.caption && msg.caption.includes("/addfile")) {
     try {
       const fileRes = await tg(env, "getFile", { file_id: msg.document.file_id });
@@ -206,32 +210,84 @@ async function handleMessage(msg, env) {
   }
 }
 
-// Inline Callback Handling
+// Inline Callback Handling (Message အဟောင်းကို အသစ်ဖြင့် Edit ပြုလုပ်ခြင်း)
 async function handleCallback(cb, env) {
   const userId = cb.from.id;
   const username = cb.from.username || "Unknown";
   const callbackId = cb.id;
   const chatId = cb.message.chat.id;
+  const messageId = cb.message.message_id;
   const adminId = Number(env.ADMIN_GROUP_ID);
 
-  // Admin Group Stock စစ်ခြင်း
+  // စာသားကို နေရာမှာတင် အစားထိုးပေးမည့် Helper Function
+  async function editMessage(text, replyMarkup) {
+    await tg(env, "editMessageText", {
+      chat_id: chatId,
+      message_id: messageId,
+      text: text,
+      parse_mode: "HTML",
+      reply_markup: replyMarkup,
+    });
+  }
+
+  // --- Admin Group: Stock စစ်ခြင်း ---
   if (cb.data === "admin_check_stock" && chatId === adminId) {
     const stock = await env.DB.prepare("SELECT COUNT(*) as count FROM keys").first();
     await tg(env, "answerCallbackQuery", { callback_query_id: callbackId });
-    await tg(env, "sendMessage", {
-      chat_id: chatId,
-      text: `📊 <b>လက်ရှိ Test Key Stock အခြေအနေ</b>\n\nလက်ကျန်: <b>${stock.count}</b> ခု`,
-      parse_mode: "HTML",
-      reply_markup: {
+    await editMessage(
+      `📊 <b>လက်ရှိ Test Key Stock အခြေအနေ</b>\n\nလက်ကျန်: <b>${stock.count}</b> ခု`,
+      {
         inline_keyboard: [
           [{ text: "🔄 Refresh Stock", callback_data: "admin_check_stock" }]
         ]
       }
-    });
+    );
     return;
   }
 
-  // Key ပြန်လည်ကြည့်ရှုခြင်း (View My Key)
+  // --- ပင်မစာမျက်နှာသို့ ပြန်သွားရန် (Back to Main Menu) ---
+  if (cb.data === "back_to_menu") {
+    await tg(env, "answerCallbackQuery", { callback_query_id: callbackId });
+    const startData = await getStartMenu(env, userId);
+    await editMessage(startData.text, startData.reply_markup);
+    return;
+  }
+
+  // --- VPN ဈေးနှုန်းများ ကြည့်ရှုခြင်း (Pricing Plans) ---
+  if (cb.data === "view_pricing") {
+    await tg(env, "answerCallbackQuery", { callback_query_id: callbackId });
+
+    const pricingMsg = 
+      `⚡️ <b>Outline VPN Premium Package ဈေးနှုန်းများ</b> ⚡️\n\n` +
+      `လိုင်းဆွဲအား မြန်ဆန်ပြီး Security စိတ်ချရသော High-speed Servers များကို အသုံးပြုနိုင်ပါသည်။\n\n` +
+      `💎 <b>Package စာရင်းများ:</b>\n` +
+      `━━━━━━━━━━━━━━━━━\n` +
+      `🔹 <b>၁ လ သက်တမ်း (1 Month)</b>\n` +
+      `• ဈေးနှုန်း: <b>5,000 MMK</b>\n` +
+      `• Unlimited Data | High Speed\n\n` +
+      `🔹 <b>၃ လ သက်တမ်း (3 Months)</b>\n` +
+      `• ဈေးနှုန်း: <b>13,000 MMK</b> (သက်သာ)\n` +
+      `• Unlimited Data | High Speed\n\n` +
+      `🔹 <b>၆ လ သက်တမ်း (6 Months)</b>\n` +
+      `• ဈေးနှုန်း: <b>25,000 MMK</b> (လူကြိုက်အများဆုံး)\n` +
+      `• Unlimited Data | VIP Support\n` +
+      `━━━━━━━━━━━━━━━━━\n\n` +
+      `🛒 <b>ဝယ်ယူရန် သို့မဟုတ် စုံစမ်းရန်:</b>\n` +
+      `အောက်ပါ <b>Contact Admin</b> ခလုတ်ကို နှိပ်၍ တိုက်ရိုက် ဆက်သွယ်ဝယ်ယူနိုင်ပါသည် 👇`;
+
+    await editMessage(
+      pricingMsg,
+      {
+        inline_keyboard: [
+          adminButton,
+          [{ text: "🔙 ပင်မစာမျက်နှာသို့", callback_data: "back_to_menu" }]
+        ]
+      }
+    );
+    return;
+  }
+
+  // --- Key ပြန်လည်ကြည့်ရှုခြင်း (View My Key) ---
   if (cb.data === "view_my_key") {
     await tg(env, "answerCallbackQuery", { callback_query_id: callbackId });
 
@@ -240,11 +296,16 @@ async function handleCallback(cb, env) {
     ).bind(userId).first();
 
     if (!user || !user.current_key) {
-      await tg(env, "sendMessage", {
-        chat_id: chatId,
-        text: "⚠️ သင်သည် Test Key မယူရသေးပါ။",
-        reply_markup: { inline_keyboard: [adminButton] }
-      });
+      await editMessage(
+        "⚠️ သင်သည် Test Key မယူရသေးပါ။",
+        {
+          inline_keyboard: [
+            [{ text: "🎁 Test Key ရယူမည်", callback_data: "get_test_key" }],
+            [{ text: "🔙 ပင်မစာမျက်နှာသို့", callback_data: "back_to_menu" }],
+            adminButton
+          ]
+        }
+      );
       return;
     }
 
@@ -253,24 +314,23 @@ async function handleCallback(cb, env) {
       `<code>${user.current_key}</code>\n\n` +
       `👆 <i>Key ကို ဖိနှိပ် (Tap) ၍ Copy ယူနိုင်ပါသည်။</i>`;
 
-    await tg(env, "sendMessage", {
-      chat_id: chatId,
-      text: keyMsg,
-      parse_mode: "HTML",
-      reply_markup: {
+    await editMessage(
+      keyMsg,
+      {
         inline_keyboard: [
           [
-            { text: "ℹ️ ကျွန်ုပ်၏ Status စစ်ဆေးမည်", callback_data: "check_my_status" },
+            { text: "ℹ️ Status စစ်ဆေးမည်", callback_data: "check_my_status" },
             { text: "📖 Key ထည့်သွင်းနည်း", callback_data: "how_to_use" }
           ],
+          [{ text: "🔙 ပင်မစာမျက်နှာသို့", callback_data: "back_to_menu" }],
           adminButton
-        ],
-      },
-    });
+        ]
+      }
+    );
     return;
   }
 
-  // Key ထည့်သွင်းနည်း လမ်းညွှန်
+  // --- Key ထည့်သွင်းနည်း လမ်းညွှန် ---
   if (cb.data === "how_to_use") {
     await tg(env, "answerCallbackQuery", { callback_query_id: callbackId });
 
@@ -281,25 +341,27 @@ async function handleCallback(cb, env) {
       `3. Outline App ထဲသို့ ဝင်လိုက်ပါက Key အလိုအလျောက် ပေါ်လာပါမည်။ (မပေါ်ပါက ညာဘက်အပေါ်ရှိ <b>+</b> ခလုတ်ကို နှိပ်ပြီး Paste ချပါ)\n` +
       `4. <b>"Add Server"</b> ကို နှိပ်ပြီးနောက် <b>Connect</b> ကို နှိပ်၍ စတင် အသုံးပြုနိုင်ပါပြီ။`;
 
-    await tg(env, "sendMessage", {
-      chat_id: chatId,
-      text: guideMsg,
-      parse_mode: "HTML",
-      reply_markup: {
+    await editMessage(
+      guideMsg,
+      {
         inline_keyboard: [
-          [{ text: "ℹ️ ကျွန်ုပ်၏ Status စစ်ဆေးမည်", callback_data: "check_my_status" }],
+          [
+            { text: "🔑 ကျွန်ုပ်၏ Key ကြည့်မည်", callback_data: "view_my_key" },
+            { text: "ℹ️ Status စစ်ဆေးမည်", callback_data: "check_my_status" }
+          ],
+          [{ text: "🔙 ပင်မစာမျက်နှာသို့", callback_data: "back_to_menu" }],
           adminButton
-        ],
-      },
-    });
+        ]
+      }
+    );
     return;
   }
 
-  // Status စစ်ဆေးခြင်း
+  // --- Status စစ်ဆေးခြင်း ---
   if (cb.data === "check_my_status") {
     await tg(env, "answerCallbackQuery", { callback_query_id: callbackId });
 
-    const user = await env.DB.prepare("SELECT last_claimed_at FROM users WHERE telegram_id = ?").bind(userId).first();
+    const user = await env.DB.prepare("SELECT last_claimed_at, current_key FROM users WHERE telegram_id = ?").bind(userId).first();
 
     if (!user || !user.last_claimed_at) {
       const notClaimedText = 
@@ -308,17 +370,16 @@ async function handleCallback(cb, env) {
         `📌 <b>အခြေအနေ:</b> သင်သည် Test Key လုံးဝ မယူရသေးပါ ✨\n\n` +
         `👉 အောက်ပါခလုတ်ကို နှိပ်ပြီး ယခုပင် အခမဲ့ ရယူနိုင်ပါသည်!`;
 
-      await tg(env, "sendMessage", {
-        chat_id: chatId,
-        text: notClaimedText,
-        parse_mode: "HTML",
-        reply_markup: {
+      await editMessage(
+        notClaimedText,
+        {
           inline_keyboard: [
             [{ text: "🎁 Test Key ရယူမည်", callback_data: "get_test_key" }],
+            [{ text: "🔙 ပင်မစာမျက်နှာသို့", callback_data: "back_to_menu" }],
             adminButton
-          ],
-        },
-      });
+          ]
+        }
+      );
       return;
     }
 
@@ -341,17 +402,16 @@ async function handleCallback(cb, env) {
         `⏳ <b>နောက်တစ်ကြိမ် ယူနိုင်မည့်နေ့:</b> ${nextTimeStr}\n\n` +
         `⚠️ <i>နောက်ထပ် Key အသစ် ရယူနိုင်ရန် <b>${remainingDays} ရက် နှင့် ${remainingHours} နာရီ</b> လိုပါသေးသည်။</i>`;
 
-      await tg(env, "sendMessage", {
-        chat_id: chatId,
-        text: statusMsg,
-        parse_mode: "HTML",
-        reply_markup: {
+      await editMessage(
+        statusMsg,
+        {
           inline_keyboard: [
             [{ text: "🔑 ကျွန်ုပ်၏ Key ပြန်လည်ကြည့်ရှုမည်", callback_data: "view_my_key" }],
+            [{ text: "🔙 ပင်မစာမျက်နှာသို့", callback_data: "back_to_menu" }],
             adminButton
-          ],
-        },
-      });
+          ]
+        }
+      );
     } else {
       const readyMsg = 
         `ℹ️ <b>သင်၏ Test Key အခြေအနေ (Status)</b>\n\n` +
@@ -359,22 +419,21 @@ async function handleCallback(cb, env) {
         `🎉 <b>ရက်ပေါင်း (၃၀) ပြည့်သွားပါပြီ!</b>\n\n` +
         `ယခုအခါ နောက်ထပ် Test Key အသစ်တစ်ခုကို ပြန်လည်ရယူနိုင်ပါပြီ။`;
 
-      await tg(env, "sendMessage", {
-        chat_id: chatId,
-        text: readyMsg,
-        parse_mode: "HTML",
-        reply_markup: {
+      await editMessage(
+        readyMsg,
+        {
           inline_keyboard: [
             [{ text: "🎁 Test Key ရယူမည်", callback_data: "get_test_key" }],
+            [{ text: "🔙 ပင်မစာမျက်နှာသို့", callback_data: "back_to_menu" }],
             adminButton
-          ],
-        },
-      });
+          ]
+        }
+      );
     }
     return;
   }
 
-  // Test Key ထုတ်ယူခြင်း
+  // --- Test Key ထုတ်ယူခြင်း ---
   if (cb.data === "get_test_key") {
     const user = await env.DB.prepare(
       "SELECT last_claimed_at FROM users WHERE telegram_id = ?"
@@ -411,7 +470,6 @@ async function handleCallback(cb, env) {
       return;
     }
 
-    // Database ထဲတွင် User ရဲ့ current_key အဖြစ် သိမ်းပြီး Stock ထဲမှ DELETE လုပ်ခြင်း
     await env.DB.batch([
       env.DB.prepare(
         "INSERT INTO users (telegram_id, username, last_claimed_at, current_key) VALUES (?, ?, CURRENT_TIMESTAMP, ?) " +
@@ -428,19 +486,18 @@ async function handleCallback(cb, env) {
       `👆 <i>အပေါ်က Key စာသားကို ဖိနှိပ် (Tap) လိုက်ရုံဖြင့် အလိုအလျောက် Copy ကူးသွားပါမည်။</i>\n\n` +
       `⚠️ <i>ဤ Key ကို Stock မှ ဖျက်ထုတ်လိုက်ပြီး ဖြစ်သောကြောင့် သင်တစ်ဦးတည်းသာ ပိုင်ဆိုင်ပါသည်။ ပျောက်သွားပါက အချိန်မရွေး ပြန်လည်ကြည့်ရှုနိုင်ပါသည်။</i>`;
 
-    await tg(env, "sendMessage", {
-      chat_id: chatId,
-      text: successMsg,
-      parse_mode: "HTML",
-      reply_markup: {
+    await editMessage(
+      successMsg,
+      {
         inline_keyboard: [
           [
-            { text: "ℹ️ ကျွန်ုပ်၏ Status စစ်ဆေးမည်", callback_data: "check_my_status" },
+            { text: "ℹ️ Status စစ်ဆေးမည်", callback_data: "check_my_status" },
             { text: "📖 Key ထည့်သွင်းနည်း", callback_data: "how_to_use" }
           ],
+          [{ text: "🔙 ပင်မစာမျက်နှာသို့", callback_data: "back_to_menu" }],
           adminButton
-        ],
-      },
-    });
+        ]
+      }
+    );
   }
 }
