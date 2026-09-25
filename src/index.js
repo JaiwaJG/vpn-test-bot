@@ -102,8 +102,10 @@ async function handleMessage(msg, env) {
 
     // /start command
     if (text === "/start") {
+      await env.DB.prepare("UPDATE users SET pending_topup_amount = 0 WHERE telegram_id = ?").bind(user.telegram_id).run();
+
       const welcomeText = 
-        `👋 မင်္ဂလာပါ <b>${msg.from.first_name || ""}</b>! ✨\n\n` +
+        `👋 မင်္ဂလာပါ <b>${msg.from.first_name || ""}</b> ✨\n\n` +
         `Outline VPN Automated Store မှ ကြိုဆိုပါသည်။\n` +
         `မိမိ လိုအပ်သော ဝန်ဆောင်မှုကို အောက်ပါ Menu မှ ရွေးချယ်နိုင်ပါသည် 👇`;
 
@@ -116,7 +118,53 @@ async function handleMessage(msg, env) {
       return;
     }
 
-    // ငွေလွှဲစလစ် (Photo) ပေးပို့လာခြင်း
+    // စိတ်ကြိုက် Amount စာရိုက်ထည့်ခြင်း (အနည်းဆုံး 2,500 Ks စစ်ဆေးမှု)
+    if (user.pending_topup_amount === -1 && text) {
+      const cleanNum = text.replace(/,/g, "").trim();
+      const amount = parseInt(cleanNum, 10);
+
+      if (isNaN(amount) || amount < 2500) {
+        await tg(env, "sendMessage", {
+          chat_id: chatId,
+          text: "⚠️ <b>မှားယွင်းနေပါသည်!</b>\n\nအနည်းဆုံး ငွေဖြည့်သွင်းငွေ ပမာဏမှာ <b>2,500 Ks</b> ဖြစ်ပါသည်။\nကျေးဇူးပြု၍ ကိန်းဂဏန်းသီးသန့် (ဥပမာ - <code>2500</code>, <code>5000</code>, <code>15000</code>) ဟု ရိုက်ထည့်ပေးပါခင်ဗျာ။",
+          parse_mode: "HTML",
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: "🔙 ပင်မစာမျက်နှာသို့", callback_data: "menu_home" }]
+            ]
+          }
+        });
+        return;
+      }
+
+      await env.DB.prepare("UPDATE users SET pending_topup_amount = ? WHERE telegram_id = ?").bind(amount, user.telegram_id).run();
+
+      const payInfoMsg = 
+        `💳 <b>ငွေလွှဲရန် အချက်အလက်များ</b>\n\n` +
+        `💰 လွှဲရမည့် ပမာဏ: <b>${amount.toLocaleString()} Ks</b>\n\n` +
+        `📱 <b>KBZPay | AYAPay \n </b> <code>09456545321</code> (Gum Seng Lat)\n` +
+        `<i>(ဖုန်းနံပါတ်ကို tap နှိပ်၍ အလွယ်တကူ Copy ယူနိုင်ပါသည်)</i>\n\n` +
+        `⚠️ <b>အရေးကြီးသော စည်းကမ်းချက်များ:</b>\n` +
+        `• ငွေလွှဲမှတ်ချက် (Note) တွင် VPN / Outline စာသားများ <b>လုံးဝ မရေးပါနှင့်</b>။\n` +
+        `• အထက်ဖော်ပြပါ ပမာဏအတိုင်း အတိအကျ လွှဲပေးပါ။\n` +
+        `• ငွေလွှဲပြီးပါက ပြေစာ <b>Screenshot (ဓာတ်ပုံ)</b> ကို ဤ Chat ထဲသို့ ပို့ပေးပါ။\n` +
+        `• ပြေစာအတု ပို့ဆောင်ပါက Bot အား အပြီးအပိုင် <b>Ban</b> ပြုလုပ်ပါမည်။\n\n` +
+        `👉 <i>ယခု ငွေလွှဲပြေစာ ဓာတ်ပုံကို ပေးပို့နိုင်ပါပြီ-</i>`;
+
+      await tg(env, "sendMessage", {
+        chat_id: chatId,
+        text: payInfoMsg,
+        parse_mode: "HTML",
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: "🔙 ပမာဏ ပြန်ရွေးမည်", callback_data: "menu_topup" }]
+          ]
+        }
+      });
+      return;
+    }
+
+    // ငွေလွှဲစလစ် (Photo) လက်ခံခြင်း
     if (msg.photo && msg.photo.length > 0) {
       const currentAmt = Number(user.pending_topup_amount || 0);
 
@@ -132,24 +180,20 @@ async function handleMessage(msg, env) {
 
       const photo = msg.photo[msg.photo.length - 1];
 
-      // Request မှတ်တမ်းတင်ခြင်း
       const res = await env.DB.prepare(
         "INSERT INTO topup_requests (user_id, amount, slip_file_id) VALUES (?, ?, ?)"
       ).bind(user.telegram_id, currentAmt, photo.file_id).run();
 
       const requestId = res.meta?.last_row_id || Date.now();
 
-      // Pending state ပြန်ရှင်းခြင်း
       await env.DB.prepare("UPDATE users SET pending_topup_amount = 0 WHERE telegram_id = ?").bind(user.telegram_id).run();
 
-      // User ထံ ပြန်ပို့စာ
       await tg(env, "sendMessage", {
         chat_id: chatId,
-        text: `⏳ <b>ငွေလွှဲပြေစာ လက်ခံရရှိပါပြီ!</b>\n\nဖြည့်သွင်းငွေ: <b>${currentAmt.toLocaleString()} Ks</b>\nAdmin မှ စစ်ဆေးပြီးပါက Wallet ထဲသို့ ငွေအလိုအလျောက် ရောက်ရှိလာပါမည် ခင်ဗျာ။`,
+        text: `⏳ <b>ငွေလွှဲပြေစာ လက်ခံရရှိပါပြီ!</b>\n\nဖြည့်သွင်းငွေ: <b>${currentAmt.toLocaleString()} Ks</b>\nAdmin Team မှ စစ်ဆေးပြီးပါက Wallet ထဲသို့ ငွေအလိုအလျောက် ရောက်ရှိလာပါမည် ခင်ဗျာ။`,
         parse_mode: "HTML",
       });
 
-      // Payment Group သို့ စလစ်ပို့ခြင်း
       if (paymentGroupId) {
         const captionText = 
           `📩 <b>ငွေဖြည့်တောင်းဆိုမှု အသစ် (#ID_${requestId})</b>\n\n` +
@@ -180,7 +224,7 @@ async function handleMessage(msg, env) {
   }
 
   // --- ၂။ PAYMENT GROUP SIDE COMMANDS ---
-  if (chatId === paymentGroupId) {
+  if (paymentGroupId && chatId === paymentGroupId) {
     if (text.startsWith("/ban")) {
       const parts = text.split(" ");
       const targetId = parts[1]?.trim();
@@ -202,10 +246,9 @@ async function handleMessage(msg, env) {
   }
 
   // --- ၃။ STOCK GROUP SIDE COMMANDS ---
-  if (chatId === stockGroupId) {
+  if (stockGroupId && chatId === stockGroupId) {
     const cleanCmd = text.split("@")[0].split(" ")[0].split("\n")[0];
 
-    // /stock
     if (cleanCmd === "/stock") {
       const counts = await env.DB.prepare(
         "SELECT category, COUNT(*) as count FROM keys GROUP BY category"
@@ -227,11 +270,10 @@ async function handleMessage(msg, env) {
       return;
     }
 
-    // /add_test, /add_50gb, /add_100gb, /add_250gb
     const validCommands = ["/add_test", "/add_50gb", "/add_100gb", "/add_250gb"];
     if (validCommands.includes(cleanCmd)) {
       const category = cleanCmd.replace("/add_", "");
-      const lines = text.split("\n").slice(1); // ပထမကြောင်း command ကိုကျော်ပြီး ကျန်တာ key အဖြစ်ယူ
+      const lines = text.split("\n").slice(1);
       const validKeys = lines.map(k => k.trim()).filter(k => k.startsWith("ss://"));
 
       if (validKeys.length === 0) {
@@ -243,14 +285,18 @@ async function handleMessage(msg, env) {
         return;
       }
 
+      // Batch insert keys
       const stmts = validKeys.map(k => 
         env.DB.prepare("INSERT OR IGNORE INTO keys (category, access_key) VALUES (?, ?)").bind(category, k)
       );
       await env.DB.batch(stmts);
 
+      // Stock အရေအတွက် ပြန်ဆွဲထုတ်ပြသခြင်း
+      const currentStock = await env.DB.prepare("SELECT COUNT(*) as count FROM keys WHERE category = ?").bind(category).first();
+
       await tg(env, "sendMessage", {
         chat_id: chatId,
-        text: `✅ <b>Category [${category.toUpperCase()}] သို့ Key များ ထည့်သွင်းပြီးပါပြီ!</b>\n\n• ထည့်ဝင်ပြီး: <b>${validKeys.length}</b> ခု`,
+        text: `✅ <b>Category [${category.toUpperCase()}] သို့ Key များ ထည့်သွင်းပြီးပါပြီ!</b>\n\n• အသစ်ထည့်သွင်း: <b>${validKeys.length}</b> ခု\n• လက်ကျန်စုစုပေါင်း: <b>${currentStock?.count || validKeys.length}</b> ခု`,
         parse_mode: "HTML"
       });
       return;
@@ -267,7 +313,7 @@ async function handleCallback(cb, env) {
   const data = cb.data;
   const paymentGroupId = String(env.PAYMENT_GROUP_ID || "").trim();
 
-  // အရင်ဆုံး ချက်ချင်း တုံ့ပြန်ပေးခြင်း (ခလုတ် လည်မနေစေရန်)
+  // Telegram Loading ချက်ချင်းပိတ်ခြင်း
   await tg(env, "answerCallbackQuery", { callback_query_id: callbackId });
 
   async function editMsg(text, replyMarkup) {
@@ -281,7 +327,7 @@ async function handleCallback(cb, env) {
   }
 
   // --- A. PAYMENT GROUP ACTIONS ---
-  if (chatId === paymentGroupId) {
+  if (paymentGroupId && chatId === paymentGroupId) {
     if (data.startsWith("pay_app_")) {
       const parts = data.split("_");
       const reqId = parts[2];
@@ -325,7 +371,7 @@ async function handleCallback(cb, env) {
 
       await tg(env, "sendMessage", {
         chat_id: targetUserId,
-        text: "❌ <b>သင့် ငွေလွှဲပြေစာ အတည်မပြုနိုင်ပါခင်ဗျာ။</b>\nငွေလွှဲမှတ်တမ်း မမှန်ကန်ပါက Support သို့ ဆက်သွယ်ပေးပါ။",
+        text: "❌ <b>သင့် ငွေလွှဲပြေစာ အတည်မပြုနိုင်ပါခင်ဗျာ။</b>\nငွေလွှဲမှတ်တမ်း မှန်ကန်ပါက Support သို့ ဆက်သွယ်ပေးပါ။",
         parse_mode: "HTML",
         reply_markup: getMainKeyboard(),
       });
@@ -363,6 +409,7 @@ async function handleCallback(cb, env) {
 
   // Home Menu
   if (data === "menu_home") {
+    await env.DB.prepare("UPDATE users SET pending_topup_amount = 0 WHERE telegram_id = ?").bind(user.telegram_id).run();
     const welcomeText = 
       `👋 မင်္ဂလာပါ <b>${cb.from.first_name || ""}</b>! ✨\n\n` +
       `Outline VPN Automated Store မှ ကြိုဆိုပါသည်။\n` +
@@ -412,7 +459,7 @@ async function handleCallback(cb, env) {
       `📜 <b>စည်းကမ်းချက်များနှင့် အသုံးပြုပုံ မူဝါဒ:</b>\n\n` +
       `1. ငွေလွှဲသည့်အခါ မှတ်ချက် (Note) တွင် VPN / Key / Outline စာသားများ လုံးဝ မရေးရပါ။\n` +
       `2. ဝယ်ယူရရှိသော Key အား တစ်ဦးတည်းသာ သီးသန့် အသုံးပြုရပါမည်။\n` +
-      `3. ငွေလွှဲပြေစာအတု ပို့ဆောင်ပါက User ID အား အပြီးအပိုင် Ban ပြုလုပ်ပါမည်။\n` +
+      `3. ငွေလွှဲပြေစာအတု ပို့ဆောင်ပါက User ID အား အမေးအမြန်း မရှိ အပြီးအပိုင် Ban ပါမည်။\n` +
       `4. Server ပြဿနာတစ်စုံတစ်ရာ ရှိပါက Support သို့ ဆက်သွယ်နိုင်ပါသည်။`;
     await editMsg(termsMsg, {
       inline_keyboard: [
@@ -422,23 +469,42 @@ async function handleCallback(cb, env) {
     return;
   }
 
-  // Topup Amount ရွေးချယ်မှု
+  // Topup ပမာဏ ရွေးချယ်မှု
   if (data === "menu_topup") {
     const topupSelectMsg = 
       `💳 <b>ငွေဖြည့်သွင်းမည့် ပမာဏ ရွေးချယ်ပါ</b>\n\n` +
-      `မိမိ Wallet ထဲသို့ ဖြည့်သွင်းလိုသော ပမာဏကို အောက်ပါ ခလုတ်များမှ ရွေးချယ်ပေးပါ 👇`;
+      `မိမိ Wallet ထဲသို့ ဖြည့်သွင်းလိုသော ပမာဏကို အောက်ပါ ခလုတ်များမှ ရွေးချယ်ပေးပါ (သို့မဟုတ်) မိမိစိတ်ကြိုက် ပမာဏကိုလည်း ရိုက်ထည့်နိုင်ပါသည် 👇`;
     await editMsg(topupSelectMsg, {
       inline_keyboard: [
         [{ text: "💵 2,500 Ks (50GB စာ)", callback_data: "topup_amt_2500" }],
         [{ text: "💵 4,500 Ks (100GB စာ)", callback_data: "topup_amt_4500" }],
         [{ text: "💵 10,500 Ks (250GB စာ)", callback_data: "topup_amt_10500" }],
+        [{ text: "✍️ စိတ်ကြိုက် ပမာဏ ရိုက်ထည့်မည်", callback_data: "topup_custom" }],
         [{ text: "🔙 ပင်မစာမျက်နှာသို့", callback_data: "menu_home" }]
       ]
     });
     return;
   }
 
-  // Topup Amount ရွေးပြီးချိန် Payment Info ပြသခြင်း
+  // စိတ်ကြိုက် Amount Prompt (အနည်းဆုံး 2,500 Ks)
+  if (data === "topup_custom") {
+    await env.DB.prepare("UPDATE users SET pending_topup_amount = -1 WHERE telegram_id = ?").bind(userId).run();
+
+    const customPromptMsg = 
+      `✍️ <b>စိတ်ကြိုက် ပမာဏ ရိုက်ထည့်ခြင်း</b>\n\n` +
+      `မိမိ Wallet ထဲသို့ ဖြည့်သွင်းလိုသော ပမာဏကို <b>ကိန်းဂဏန်းသီးသန့်</b> ဤ Chat ထဲသို့ စာရိုက်၍ ပေးပို့ပေးပါခင်ဗျာ။\n\n` +
+      `• အနည်းဆုံး ပမာဏ: <b>2,500 Ks</b>\n` +
+      `• ဥပမာ ပုံစံ: <code>2500</code>, <code>5000</code> သို့မဟုတ် <code>20000</code>`;
+
+    await editMsg(customPromptMsg, {
+      inline_keyboard: [
+        [{ text: "🔙 နောက်သို့ ပြန်သွားမည်", callback_data: "menu_topup" }]
+      ]
+    });
+    return;
+  }
+
+  // Standard Topup Amount ရွေးပြီးချိန် Payment Info
   if (data.startsWith("topup_amt_")) {
     const amount = Number(data.replace("topup_amt_", ""));
     await env.DB.prepare("UPDATE users SET pending_topup_amount = ? WHERE telegram_id = ?").bind(amount, userId).run();
@@ -453,7 +519,7 @@ async function handleCallback(cb, env) {
       `• ငွေလွှဲမှတ်ချက် (Note) တွင် VPN / Outline စာသားများ <b>လုံးဝ မရေးပါနှင့်</b>။\n` +
       `• အထက်ဖော်ပြပါ ပမာဏအတိုင်း အတိအကျ လွှဲပေးပါ။\n` +
       `• ငွေလွှဲပြီးပါက ပြေစာ <b>Screenshot (ဓာတ်ပုံ)</b> ကို ဤ Chat ထဲသို့ ပို့ပေးပါ။\n` +
-      `• ပြေစာအတု ပို့ဆောင်ပါက Bot အား အပြီးအပိုင် <b>Ban</b> ပြုလုပ်ပါမည်။\n\n` +
+      `• ပြေစာအတု ပို့ဆောင်ပါက Bot အား အမေးအမြန်း မရှိ အပြီးအပိုင် <b>Ban</b> ပါမည်။\n\n` +
       `👉 <i>ယခု ငွေလွှဲပြေစာ ဓာတ်ပုံကို ပေးပို့နိုင်ပါပြီ-</i>`;
 
     await editMsg(payInfoMsg, {
@@ -515,7 +581,7 @@ async function handleCallback(cb, env) {
       await editMsg(
         `😔 <b>စိတ်မကောင်းပါခင်ဗျာ!</b>\n\n` +
         `လက်ရှိတွင် <b>[${category.toUpperCase()}]</b> Key များ Stock ပြတ်လပ်နေပါသည်။\n` +
-        `Admin ဘက်မှ Stock ဖြည့်တင်းချိန်ကို စောင့်ဆိုင်းပေးပါခင်ဗျာ။`,
+        `Admin Team ဘက်မှ Stock ဖြည့်တင်းချိန်ကို စောင့်ဆိုင်းပေးပါခင်ဗျာ။`,
         {
           inline_keyboard: [
             [{ text: "🔙 ပြန်သွားမည်", callback_data: "menu_buy" }],
@@ -549,9 +615,9 @@ async function handleCallback(cb, env) {
     return;
   }
 
-  // Free Test Key
+  // --- C. FREE TEST KEY HANDLING (ပြန်ကြည့်ရန် ခလုတ်ပါဝင်သည်) ---
   if (data === "menu_test_key") {
-    if (user.last_claimed_test_at) {
+    if (user.last_claimed_test_at && user.current_test_key) {
       const lastClaim = new Date(user.last_claimed_test_at.replace(" ", "T") + "Z");
       const nextDate = new Date(lastClaim.getTime() + 30 * 24 * 60 * 60 * 1000);
       const now = new Date();
@@ -565,9 +631,11 @@ async function handleCallback(cb, env) {
           `⚠️ <b>သင်သည် Test Key ရယူပြီးသား ဖြစ်ပါသည်!</b>\n\n` +
           `📅 ရယူခဲ့သည့်နေ့: ${formatMyanmarTime(lastClaim)}\n` +
           `⏳ နောက်တစ်ကြိမ် ယူနိုင်မည့်နေ့: ${formatMyanmarTime(nextDate)}\n\n` +
-          `<i>နောက်ထပ် Key ရယူရန် <b>${days} ရက်နှင့် ${hours} နာရီ</b> လိုပါသေးသည်။</i>`,
+          `<i>နောက်ထပ် Key အသစ် ရယူရန် <b>${days} ရက်နှင့် ${hours} နာရီ</b> လိုပါသေးသည်။</i>\n\n` +
+          `ယခင်ရယူထားသော Test Key ကို ပြန်လည်ကြည့်ရှုလိုပါက အောက်ပါခလုတ်ကို နှိပ်ပါ 👇`,
           {
             inline_keyboard: [
+              [{ text: "🔑 ကျွန်ုပ်၏ Test Key ပြန်ကြည့်မည်", callback_data: "view_claimed_test_key" }],
               [{ text: "🔙 ပင်မစာမျက်နှာသို့", callback_data: "menu_home" }]
             ]
           }
@@ -576,6 +644,7 @@ async function handleCallback(cb, env) {
       }
     }
 
+    // Stock မှ Key ဆွဲထုတ်ခြင်း
     const testKeyItem = await env.DB.prepare(
       "SELECT id, access_key FROM keys WHERE category = 'test' LIMIT 1"
     ).first();
@@ -608,5 +677,22 @@ async function handleCallback(cb, env) {
         ]
       }
     );
+    return;
+  }
+
+  // ရယူပြီးသား Test Key ကို ပြန်လည်ပြသပေးခြင်း
+  if (data === "view_claimed_test_key") {
+    const keyStr = user.current_test_key || "Key ရှာမတွေ့ပါ။";
+    await editMsg(
+      `🔑 <b>သင် ရယူထားသော Outline Test Key ဖြစ်ပါသည်:</b>\n\n` +
+      `<code>${keyStr}</code>\n\n` +
+      `👆 <i>Key ကို ဖိနှိပ် (Tap) ၍ Copy ယူနိုင်ပါသည်။</i>`,
+      {
+        inline_keyboard: [
+          [{ text: "🔙 ပင်မစာမျက်နှာသို့", callback_data: "menu_home" }]
+        ]
+      }
+    );
+    return;
   }
 }
