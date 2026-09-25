@@ -43,8 +43,8 @@ function formatMyanmarTime(dateObj) {
   }).format(dateObj);
 }
 
-// User ရဲ့ လက်ရှိ အခြေအနေပေါ်မူတည်ပြီး Dynamic Start Menu ဆောက်ပေးသည့် function
-async function getStartMenu(env, userId) {
+// User ရဲ့ လက်ရှိ အခြေအနေနှင့် နာမည်ပေါ်မူတည်ပြီး Dynamic Start Menu ဆောက်ပေးသည့် function
+async function getStartMenu(env, userId, firstName) {
   const user = await env.DB.prepare(
     "SELECT last_claimed_at, current_key FROM users WHERE telegram_id = ?"
   ).bind(userId).first();
@@ -78,8 +78,9 @@ async function getStartMenu(env, userId) {
     ];
   }
 
+  const displayName = firstName ? ` <b>${firstName}</b>` : "";
   const welcomeText = 
-    `👋 <b>မင်္ဂလာပါ ${displayName}! 🌟</b>\n\n` +
+    `👋 မင်္ဂလာပါ${displayName}! ✨\n\n` +
     `Outline VPN Test Key များကို ဤနေရာတွင် အခမဲ့ ရယူနိုင်ပါသည်။\n\n` +
     `📌 <b>စည်းကမ်းချက်များ:</b>\n` +
     `• User တစ်ယောက်လျှင် <b>(၁) လ လျှင် (၁) ကြိမ်သာ</b> ရယူနိုင်ပါသည်။\n` +
@@ -94,11 +95,12 @@ async function handleMessage(msg, env) {
   const chatId = msg.chat.id;
   const text = msg.text || "";
   const userId = msg.from.id;
+  const firstName = msg.from.first_name || "";
   const adminId = Number(env.ADMIN_GROUP_ID);
 
   // --- USER SIDE: /start ---
   if (text === "/start") {
-    const startData = await getStartMenu(env, userId);
+    const startData = await getStartMenu(env, userId, firstName);
     await tg(env, "sendMessage", {
       chat_id: chatId,
       text: startData.text,
@@ -210,16 +212,16 @@ async function handleMessage(msg, env) {
   }
 }
 
-// Inline Callback Handling (Message အဟောင်းကို အသစ်ဖြင့် Edit ပြုလုပ်ခြင်း)
+// Inline Callback Handling
 async function handleCallback(cb, env) {
   const userId = cb.from.id;
   const username = cb.from.username || "Unknown";
+  const firstName = cb.from.first_name || "";
   const callbackId = cb.id;
   const chatId = cb.message.chat.id;
   const messageId = cb.message.message_id;
   const adminId = Number(env.ADMIN_GROUP_ID);
 
-  // စာသားကို နေရာမှာတင် အစားထိုးပေးမည့် Helper Function
   async function editMessage(text, replyMarkup) {
     await tg(env, "editMessageText", {
       chat_id: chatId,
@@ -245,15 +247,15 @@ async function handleCallback(cb, env) {
     return;
   }
 
-  // --- ပင်မစာမျက်နှာသို့ ပြန်သွားရန် (Back to Main Menu) ---
+  // --- ပင်မစာမျက်နှာသို့ ပြန်သွားရန် ---
   if (cb.data === "back_to_menu") {
     await tg(env, "answerCallbackQuery", { callback_query_id: callbackId });
-    const startData = await getStartMenu(env, userId);
+    const startData = await getStartMenu(env, userId, firstName);
     await editMessage(startData.text, startData.reply_markup);
     return;
   }
 
-  // --- VPN ဈေးနှုန်းများ ကြည့်ရှုခြင်း (Pricing Plans) ---
+  // --- VPN ဈေးနှုန်းများ ကြည့်ရှုခြင်း ---
   if (cb.data === "view_pricing") {
     await tg(env, "answerCallbackQuery", { callback_query_id: callbackId });
 
@@ -264,13 +266,13 @@ async function handleCallback(cb, env) {
       `━━━━━━━━━━━━━━━━━\n` +
       `🔹 <b> ၃၀ ရက် သက်တမ်း (30 Days)</b>\n` +
       `• ဈေးနှုန်း: <b>2,500 MMK</b>\n` +
-      `• 50 GB | High Speed\n\n` +
+      `• <b>50 GB | High Speed</b>\n\n` +
       `🔹 <b> ၃၅ ရက် သက်တမ်း (35 Days)</b>\n` +
       `• ဈေးနှုန်း: <b>4,500 MMK</b> (သက်သာ)\n` +
-      `• 100 GB | High Speed\n\n` +
+      `• <b> 100 GB | High Speed </b>\n\n` +
       `🔹 <b> ၇၅ ရက် သက်တမ်း (75 Days)</b>\n` +
       `• ဈေးနှုန်း: <b>10,500 MMK</b> (လူကြိုက်အများဆုံး)\n` +
-      `• 250 GB | High Speed\n` +
+      `• <b> 250 GB | High Speed </b>\n` +
       `━━━━━━━━━━━━━━━━━\n\n` +
       `🛒 <b>ဝယ်ယူရန် သို့မဟုတ် စုံစမ်းရန်:</b>\n` +
       `အောက်ပါ <b>Contact Admin</b> ခလုတ်ကို နှိပ်၍ တိုက်ရိုက် ဆက်သွယ်ဝယ်ယူနိုင်ပါတယ် ခင်ဗျ။ 🤍 👇`;
@@ -287,7 +289,7 @@ async function handleCallback(cb, env) {
     return;
   }
 
-  // --- Key ပြန်လည်ကြည့်ရှုခြင်း (View My Key) ---
+  // --- Key ပြန်လည်ကြည့်ရှုခြင်း ---
   if (cb.data === "view_my_key") {
     await tg(env, "answerCallbackQuery", { callback_query_id: callbackId });
 
@@ -366,7 +368,7 @@ async function handleCallback(cb, env) {
     if (!user || !user.last_claimed_at) {
       const notClaimedText = 
         `ℹ️ <b>သင်၏ အကောင့်အခြေအနေ (Status)</b>\n\n` +
-        `👤 <b>အမည်:</b> ${cb.from.first_name || username}\n` +
+        `👤 <b>အမည်:</b> ${firstName || username}\n` +
         `📌 <b>အခြေအနေ:</b> သင်သည် Test Key လုံးဝ မယူရသေးပါ ✨\n\n` +
         `👉 အောက်ပါခလုတ်ကို နှိပ်ပြီး ယခုပင် အခမဲ့ ရယူနိုင်ပါသည်!`;
 
@@ -397,7 +399,7 @@ async function handleCallback(cb, env) {
 
       const statusMsg = 
         `ℹ️ <b>သင်၏ Test Key အခြေအနေ (Status)</b>\n\n` +
-        `👤 <b>အမည်:</b> ${cb.from.first_name || username}\n` +
+        `👤 <b>အမည်:</b> ${firstName || username}\n` +
         `📅 <b>ရယူခဲ့သည့်နေ့:</b> ${claimedTimeStr}\n` +
         `⏳ <b>နောက်တစ်ကြိမ် ယူနိုင်မည့်နေ့:</b> ${nextTimeStr}\n\n` +
         `⚠️ <i>နောက်ထပ် Key အသစ် ရယူနိုင်ရန် <b>${remainingDays} ရက် နှင့် ${remainingHours} နာရီ</b> လိုပါသေးသည်။</i>`;
@@ -415,7 +417,7 @@ async function handleCallback(cb, env) {
     } else {
       const readyMsg = 
         `ℹ️ <b>သင်၏ Test Key အခြေအနေ (Status)</b>\n\n` +
-        `👤 <b>အမည်:</b> ${cb.from.first_name || username}\n` +
+        `👤 <b>အမည်:</b> ${firstName || username}\n` +
         `🎉 <b>ရက်ပေါင်း (၃၀) ပြည့်သွားပါပြီ!</b>\n\n` +
         `ယခုအခါ နောက်ထပ် Test Key အသစ်တစ်ခုကို ပြန်လည်ရယူနိုင်ပါပြီ။`;
 
