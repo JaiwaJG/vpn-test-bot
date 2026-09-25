@@ -11,7 +11,7 @@ export default {
         await handleMessage(update.message, env);
       }
     } catch (err) {
-      console.error("Worker Error:", err);
+      console.error("Worker Global Error:", err);
     }
 
     return new Response("OK");
@@ -27,25 +27,29 @@ async function tg(env, method, payload) {
   });
 }
 
-// မြန်မာစံတော်ချိန် (UTC+6:30) helper
+// မြန်မာစံတော်ချိန် (UTC+6:30) Helper
 function formatMyanmarTime(dateObj) {
-  return new Intl.DateTimeFormat("en-GB", {
-    timeZone: "Asia/Yangon",
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: true,
-  }).format(dateObj);
+  try {
+    return new Intl.DateTimeFormat("en-GB", {
+      timeZone: "Asia/Yangon",
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    }).format(dateObj);
+  } catch (e) {
+    return dateObj.toISOString();
+  }
 }
 
-// User Record ရယူခြင်း/အသစ်ဆောက်ခြင်း
+// User Record ရယူခြင်း/မရှိပါက အသစ်ဆောက်ခြင်း
 async function getOrCreateUser(env, from) {
   let user = await env.DB.prepare("SELECT * FROM users WHERE telegram_id = ?").bind(from.id).first();
   if (!user) {
     await env.DB.prepare(
-      "INSERT INTO users (telegram_id, username, first_name, balance) VALUES (?, ?, ?, 0)"
+      "INSERT INTO users (telegram_id, username, first_name, balance, is_banned, pending_topup_amount, total_orders) VALUES (?, ?, ?, 0, 0, 0, 0)"
     ).bind(from.id, from.username || "Unknown", from.first_name || "").run();
     user = await env.DB.prepare("SELECT * FROM users WHERE telegram_id = ?").bind(from.id).first();
   }
@@ -77,16 +81,16 @@ function getMainKeyboard() {
 
 // Message & Command Handler
 async function handleMessage(msg, env) {
-  const chatId = msg.chat.id;
-  const text = msg.text || "";
-  const paymentGroupId = Number(env.PAYMENT_GROUP_ID);
-  const stockGroupId = Number(env.STOCK_GROUP_ID);
+  const chatId = String(msg.chat.id);
+  const text = (msg.text || "").trim();
+  const paymentGroupId = String(env.PAYMENT_GROUP_ID || "").trim();
+  const stockGroupId = String(env.STOCK_GROUP_ID || "").trim();
 
   // --- ၁။ USER SIDE: PRIVATE CHAT ---
-  if (chatId > 0) {
+  if (!chatId.startsWith("-")) {
     const user = await getOrCreateUser(env, msg.from);
 
-    // Ban ခံထားရသော User အား တုံ့ပြန်မှု
+    // Ban ခံထားရသော User စစ်ဆေးခြင်း
     if (user.is_banned === 1) {
       await tg(env, "sendMessage", {
         chat_id: chatId,
@@ -113,8 +117,10 @@ async function handleMessage(msg, env) {
     }
 
     // ငွေလွှဲစလစ် (Photo) ပေးပို့လာခြင်း
-    if (msg.photo) {
-      if (!user.pending_topup_amount || user.pending_topup_amount <= 0) {
+    if (msg.photo && msg.photo.length > 0) {
+      const currentAmt = Number(user.pending_topup_amount || 0);
+
+      if (currentAmt <= 0) {
         await tg(env, "sendMessage", {
           chat_id: chatId,
           text: "⚠️ ကျေးဇူးပြု၍ ပြေစာမပို့မီ အောက်ပါ Menu ထဲရှိ <b>💳 Top Up</b> ခလုတ်ကို နှိပ်ပြီး ဖြည့်သွင်းမည့် ပမာဏကို အရင် ရွေးချယ်ပေးပါခင်ဗျာ။",
@@ -125,65 +131,68 @@ async function handleMessage(msg, env) {
       }
 
       const photo = msg.photo[msg.photo.length - 1];
-      const amount = user.pending_topup_amount;
 
-      // Pending Request စာရင်းသွင်းခြင်း
+      // Request မှတ်တမ်းတင်ခြင်း
       const res = await env.DB.prepare(
         "INSERT INTO topup_requests (user_id, amount, slip_file_id) VALUES (?, ?, ?)"
-      ).bind(user.telegram_id, amount, photo.file_id).run();
+      ).bind(user.telegram_id, currentAmt, photo.file_id).run();
 
-      const requestId = res.meta.last_row_id;
+      const requestId = res.meta?.last_row_id || Date.now();
 
-      // Pending state ပြန်ဖျက်ခြင်း
+      // Pending state ပြန်ရှင်းခြင်း
       await env.DB.prepare("UPDATE users SET pending_topup_amount = 0 WHERE telegram_id = ?").bind(user.telegram_id).run();
 
-      // User ထံ ပြန်ကြားစာ
+      // User ထံ ပြန်ပို့စာ
       await tg(env, "sendMessage", {
         chat_id: chatId,
-        text: `⏳ <b>ငွေလွှဲပြေစာ လက်ခံရရှိပါပြီ!</b>\n\nပမာဏ: <b>${amount.toLocaleString()} Ks</b>\nAdmin မှ စစ်ဆေးပြီးပါက Wallet Balance ထဲသို့ ငွေအလိုအလျောက် ရောက်ရှိလာပါမည် ခင်ဗျာ။`,
+        text: `⏳ <b>ငွေလွှဲပြေစာ လက်ခံရရှိပါပြီ!</b>\n\nဖြည့်သွင်းငွေ: <b>${currentAmt.toLocaleString()} Ks</b>\nAdmin မှ စစ်ဆေးပြီးပါက Wallet ထဲသို့ ငွေအလိုအလျောက် ရောက်ရှိလာပါမည် ခင်ဗျာ။`,
         parse_mode: "HTML",
       });
 
-      // Payment Group သို့ စလစ်နှင့် ခလုတ်များ ပို့ဆောင်ခြင်း
-      const captionText = 
-        `📩 <b>ငွေဖြည့်တောင်းဆိုမှု အသစ် (#ID_${requestId})</b>\n\n` +
-        `• <b>User:</b> ${msg.from.first_name || ""} (<code>${user.telegram_id}</code>)\n` +
-        `• <b>Username:</b> @${msg.from.username || "None"}\n` +
-        `• <b>ဖြည့်သွင်းမည့် ပမာဏ:</b> <b>${amount.toLocaleString()} Ks</b>\n` +
-        `• <b>အချိန်:</b> ${formatMyanmarTime(new Date())}\n\n` +
-        `👇 <i>ပြေစာပုံနှင့် ပမာဏ ကိုက်ညီပါက Approve နှိပ်ပါ:</i>`;
+      // Payment Group သို့ စလစ်ပို့ခြင်း
+      if (paymentGroupId) {
+        const captionText = 
+          `📩 <b>ငွေဖြည့်တောင်းဆိုမှု အသစ် (#ID_${requestId})</b>\n\n` +
+          `• <b>User:</b> ${msg.from.first_name || ""} (<code>${user.telegram_id}</code>)\n` +
+          `• <b>Username:</b> @${msg.from.username || "None"}\n` +
+          `• <b>ဖြည့်သွင်းမည့် ပမာဏ:</b> <b>${currentAmt.toLocaleString()} Ks</b>\n` +
+          `• <b>အချိန်:</b> ${formatMyanmarTime(new Date())}\n\n` +
+          `👇 <i>ပြေစာပုံနှင့် ပမာဏ ကိုက်ညီပါက Approve နှိပ်ပါ:</i>`;
 
-      await tg(env, "sendPhoto", {
-        chat_id: paymentGroupId,
-        photo: photo.file_id,
-        caption: captionText,
-        parse_mode: "HTML",
-        reply_markup: {
-          inline_keyboard: [
-            [{ text: `✅ Approve (${amount.toLocaleString()} Ks)`, callback_data: `pay_app_${requestId}_${user.telegram_id}_${amount}` }],
-            [
-              { text: "❌ Reject", callback_data: `pay_rej_${requestId}_${user.telegram_id}` },
-              { text: "🚫 Ban User", callback_data: `pay_ban_${user.telegram_id}` }
+        await tg(env, "sendPhoto", {
+          chat_id: paymentGroupId,
+          photo: photo.file_id,
+          caption: captionText,
+          parse_mode: "HTML",
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: `✅ Approve (${currentAmt.toLocaleString()} Ks)`, callback_data: `pay_app_${requestId}_${user.telegram_id}_${currentAmt}` }],
+              [
+                { text: "❌ Reject", callback_data: `pay_rej_${requestId}_${user.telegram_id}` },
+                { text: "🚫 Ban User", callback_data: `pay_ban_${user.telegram_id}` }
+              ]
             ]
-          ]
-        }
-      });
+          }
+        });
+      }
       return;
     }
   }
 
-  // --- ၂။ PAYMENT GROUP SIDE (Manual Commands) ---
+  // --- ၂။ PAYMENT GROUP SIDE COMMANDS ---
   if (chatId === paymentGroupId) {
-    if (text.startsWith("/ban ")) {
-      const targetId = text.split(" ")[1]?.trim();
+    if (text.startsWith("/ban")) {
+      const parts = text.split(" ");
+      const targetId = parts[1]?.trim();
       if (targetId) {
         await env.DB.prepare("UPDATE users SET is_banned = 1 WHERE telegram_id = ?").bind(targetId).run();
         await tg(env, "sendMessage", { chat_id: chatId, text: `🚫 User <code>${targetId}</code> အား Ban လုပ်ပြီးပါပြီ။`, parse_mode: "HTML" });
       }
       return;
     }
-    if (text.startsWith("/unban ")) {
-      const targetId = text.split(" ")[1]?.trim();
+    if (text.startsWith("/unban")) {
+      const parts = text.split(" ");
+      const targetId = parts[1]?.trim();
       if (targetId) {
         await env.DB.prepare("UPDATE users SET is_banned = 0 WHERE telegram_id = ?").bind(targetId).run();
         await tg(env, "sendMessage", { chat_id: chatId, text: `✅ User <code>${targetId}</code> အား Unban လုပ်ပြီးပါပြီ။`, parse_mode: "HTML" });
@@ -192,15 +201,20 @@ async function handleMessage(msg, env) {
     }
   }
 
-  // --- ၃။ STOCK MANAGEMENT GROUP SIDE ---
+  // --- ၃။ STOCK GROUP SIDE COMMANDS ---
   if (chatId === stockGroupId) {
-    if (text === "/stock") {
+    const cleanCmd = text.split("@")[0].split(" ")[0].split("\n")[0];
+
+    // /stock
+    if (cleanCmd === "/stock") {
       const counts = await env.DB.prepare(
         "SELECT category, COUNT(*) as count FROM keys GROUP BY category"
       ).all();
 
       let stockMap = { test: 0, "50gb": 0, "100gb": 0, "250gb": 0 };
-      counts.results.forEach(r => { stockMap[r.category] = r.count; });
+      if (counts.results) {
+        counts.results.forEach(r => { stockMap[r.category] = r.count; });
+      }
 
       const stockMsg = 
         `📊 <b>လက်ရှိ Key Stock အခြေအနေ:</b>\n\n` +
@@ -213,18 +227,17 @@ async function handleMessage(msg, env) {
       return;
     }
 
+    // /add_test, /add_50gb, /add_100gb, /add_250gb
     const validCommands = ["/add_test", "/add_50gb", "/add_100gb", "/add_250gb"];
-    const matchedCmd = validCommands.find(cmd => text.startsWith(cmd));
-
-    if (matchedCmd) {
-      const category = matchedCmd.replace("/add_", "");
-      const lines = text.replace(matchedCmd, "").trim().split("\n");
+    if (validCommands.includes(cleanCmd)) {
+      const category = cleanCmd.replace("/add_", "");
+      const lines = text.split("\n").slice(1); // ပထမကြောင်း command ကိုကျော်ပြီး ကျန်တာ key အဖြစ်ယူ
       const validKeys = lines.map(k => k.trim()).filter(k => k.startsWith("ss://"));
 
       if (validKeys.length === 0) {
         await tg(env, "sendMessage", {
           chat_id: chatId,
-          text: `⚠️ Key များ မတွေ့ပါ။ ပုံစံ: <code>${matchedCmd}</code> ဟု အပေါ်ဆုံးတွင်ရေးပြီး အောက်တွင် ss:// key များကို တစ်ကြောင်းချင်းစီ paste ချပါ။`,
+          text: `⚠️ Key များ မတွေ့ပါ။ ပုံစံ:\n<code>${cleanCmd}</code>\nss://key1...\nss://key2...`,
           parse_mode: "HTML",
         });
         return;
@@ -237,7 +250,7 @@ async function handleMessage(msg, env) {
 
       await tg(env, "sendMessage", {
         chat_id: chatId,
-        text: `✅ <b>Category [${category.toUpperCase()}] သို့ Key များ ထည့်သွင်းပြီးပါပြီ!</b>\n\n• ထည့်ဝင်: <b>${validKeys.length}</b> ခု`,
+        text: `✅ <b>Category [${category.toUpperCase()}] သို့ Key များ ထည့်သွင်းပြီးပါပြီ!</b>\n\n• ထည့်ဝင်ပြီး: <b>${validKeys.length}</b> ခု`,
         parse_mode: "HTML"
       });
       return;
@@ -245,14 +258,17 @@ async function handleMessage(msg, env) {
   }
 }
 
-// Inline Callback Handling
+// Inline Callback Query Handler
 async function handleCallback(cb, env) {
   const userId = cb.from.id;
   const callbackId = cb.id;
-  const chatId = cb.message.chat.id;
+  const chatId = String(cb.message.chat.id);
   const messageId = cb.message.message_id;
   const data = cb.data;
-  const paymentGroupId = Number(env.PAYMENT_GROUP_ID);
+  const paymentGroupId = String(env.PAYMENT_GROUP_ID || "").trim();
+
+  // အရင်ဆုံး ချက်ချင်း တုံ့ပြန်ပေးခြင်း (ခလုတ် လည်မနေစေရန်)
+  await tg(env, "answerCallbackQuery", { callback_query_id: callbackId });
 
   async function editMsg(text, replyMarkup) {
     await tg(env, "editMessageText", {
@@ -267,19 +283,20 @@ async function handleCallback(cb, env) {
   // --- A. PAYMENT GROUP ACTIONS ---
   if (chatId === paymentGroupId) {
     if (data.startsWith("pay_app_")) {
-      const [, , reqId, targetUserId, amountStr] = data.split("_");
-      const amount = Number(amountStr);
+      const parts = data.split("_");
+      const reqId = parts[2];
+      const targetUserId = parts[3];
+      const amount = Number(parts[4]);
 
       await env.DB.batch([
         env.DB.prepare("UPDATE users SET balance = balance + ? WHERE telegram_id = ?").bind(amount, targetUserId),
         env.DB.prepare("UPDATE topup_requests SET status = 'approved' WHERE id = ?").bind(reqId)
       ]);
 
-      await tg(env, "answerCallbackQuery", { callback_query_id: callbackId, text: "✅ Approved!" });
       await tg(env, "editMessageCaption", {
         chat_id: chatId,
         message_id: messageId,
-        caption: cb.message.caption + `\n\n🟢 <b>APPROVED (+${amount.toLocaleString()} Ks) by Admin</b>`,
+        caption: (cb.message.caption || "") + `\n\n🟢 <b>APPROVED (+${amount.toLocaleString()} Ks) by Admin</b>`,
         parse_mode: "HTML"
       });
 
@@ -293,14 +310,16 @@ async function handleCallback(cb, env) {
     }
 
     if (data.startsWith("pay_rej_")) {
-      const [, , reqId, targetUserId] = data.split("_");
+      const parts = data.split("_");
+      const reqId = parts[2];
+      const targetUserId = parts[3];
+
       await env.DB.prepare("UPDATE topup_requests SET status = 'rejected' WHERE id = ?").bind(reqId).run();
 
-      await tg(env, "answerCallbackQuery", { callback_query_id: callbackId, text: "❌ Rejected!" });
       await tg(env, "editMessageCaption", {
         chat_id: chatId,
         message_id: messageId,
-        caption: cb.message.caption + `\n\n🔴 <b>REJECTED by Admin</b>`,
+        caption: (cb.message.caption || "") + `\n\n🔴 <b>REJECTED by Admin</b>`,
         parse_mode: "HTML"
       });
 
@@ -317,11 +336,10 @@ async function handleCallback(cb, env) {
       const targetUserId = data.replace("pay_ban_", "");
       await env.DB.prepare("UPDATE users SET is_banned = 1 WHERE telegram_id = ?").bind(targetUserId).run();
 
-      await tg(env, "answerCallbackQuery", { callback_query_id: callbackId, text: "🚫 User Banned!" });
       await tg(env, "editMessageCaption", {
         chat_id: chatId,
         message_id: messageId,
-        caption: cb.message.caption + `\n\n🚫 <b>USER BANNED (Fake Slip)</b>`,
+        caption: (cb.message.caption || "") + `\n\n🚫 <b>USER BANNED (Fake Slip)</b>`,
         parse_mode: "HTML"
       });
 
@@ -337,11 +355,11 @@ async function handleCallback(cb, env) {
   // --- B. USER SIDE NAVIGATION ---
   const user = await getOrCreateUser(env, cb.from);
   if (user.is_banned === 1) {
-    await tg(env, "answerCallbackQuery", { callback_query_id: callbackId, text: "🚫 Banned Account!", show_alert: true });
+    await editMsg("🚫 <b>သင့်အကောင့်သည် Ban ခံထားရပါသဖြင့် ဆက်လက် အသုံးမပြုနိုင်ပါ။</b>", { inline_keyboard: [] });
     return;
   }
 
-  await tg(env, "answerCallbackQuery", { callback_query_id: callbackId });
+  const balance = Number(user.balance || 0);
 
   // Home Menu
   if (data === "menu_home") {
@@ -359,7 +377,7 @@ async function handleCallback(cb, env) {
       `💵 <b>သင့် Wallet အခြေအနေ:</b>\n\n` +
       `👤 အမည်: <b>${cb.from.first_name || ""}</b>\n` +
       `🆔 Telegram ID: <code>${user.telegram_id}</code>\n` +
-      `💰 လက်ကျန်ငွေ: <b>${user.balance.toLocaleString()} Ks</b>\n\n` +
+      `💰 လက်ကျန်ငွေ: <b>${balance.toLocaleString()} Ks</b>\n\n` +
       `<i>ငွေဖြည့်သွင်းလိုပါက အောက်ပါ Top Up ခလုတ်ကို နှိပ်ပါ 👇</i>`;
     await editMsg(balMsg, {
       inline_keyboard: [
@@ -377,7 +395,7 @@ async function handleCallback(cb, env) {
       `👤 <b>User Profile အချက်အလက်</b>\n\n` +
       `🆔 Telegram ID: <code>${user.telegram_id}</code>\n` +
       `👤 နာမည်: <b>${cb.from.first_name || ""}</b>\n` +
-      `💰 Balance: <b>${user.balance.toLocaleString()} Ks</b>\n` +
+      `💰 Balance: <b>${balance.toLocaleString()} Ks</b>\n` +
       `📦 ဝယ်ယူပြီး အော်ဒါ: <b>${user.total_orders || 0} ခု</b>\n` +
       `📅 စတင်အသုံးပြုသည့်နေ့: <b>${regDate}</b>`;
     await editMsg(profMsg, {
@@ -404,7 +422,7 @@ async function handleCallback(cb, env) {
     return;
   }
 
-  // Topup: ပမာဏ ရွေးချယ်မှု
+  // Topup Amount ရွေးချယ်မှု
   if (data === "menu_topup") {
     const topupSelectMsg = 
       `💳 <b>ငွေဖြည့်သွင်းမည့် ပမာဏ ရွေးချယ်ပါ</b>\n\n` +
@@ -420,7 +438,7 @@ async function handleCallback(cb, env) {
     return;
   }
 
-  // Topup: ငွေလွှဲအကောင့် အချက်အလက်များ
+  // Topup Amount ရွေးပြီးချိန် Payment Info ပြသခြင်း
   if (data.startsWith("topup_amt_")) {
     const amount = Number(data.replace("topup_amt_", ""));
     await env.DB.prepare("UPDATE users SET pending_topup_amount = ? WHERE telegram_id = ?").bind(amount, userId).run();
@@ -450,7 +468,7 @@ async function handleCallback(cb, env) {
   if (data === "menu_buy") {
     const buyMenuText = 
       `🛍 <b>Outline VPN Package များ ရွေးချယ်ပါ</b>\n\n` +
-      `လက်ရှိ Wallet Balance: <b>${user.balance.toLocaleString()} Ks</b>\n\n` +
+      `လက်ရှိ Wallet Balance: <b>${balance.toLocaleString()} Ks</b>\n\n` +
       `🔹 <b>50 GB Plan (၃၀ ရက်)</b> - 2,500 Ks\n` +
       `🔹 <b>100 GB Plan (၃၅ ရက်)</b> - 4,500 Ks\n` +
       `🔹 <b>250 GB Plan (၇၅ ရက်)</b> - 10,500 Ks\n\n` +
@@ -469,14 +487,15 @@ async function handleCallback(cb, env) {
 
   // Buy Outline Key: Process
   if (data.startsWith("buy_pkg_")) {
-    const [, , category, priceStr] = data.split("_");
-    const price = Number(priceStr);
+    const parts = data.split("_");
+    const category = parts[2];
+    const price = Number(parts[3]);
 
-    if (user.balance < price) {
+    if (balance < price) {
       await editMsg(
         `⚠️ <b>လက်ကျန်ငွေ မလုံလောက်ပါ!</b>\n\n` +
         `ကျသင့်ငွေ: <b>${price.toLocaleString()} Ks</b>\n` +
-        `သင့်လက်ကျန်ငွေ: <b>${user.balance.toLocaleString()} Ks</b>\n\n` +
+        `သင့်လက်ကျန်ငွေ: <b>${balance.toLocaleString()} Ks</b>\n\n` +
         `ကျေးဇူးပြု၍ Wallet ထဲသို့ ငွေဖြည့်သွင်းပြီးမှ ပြန်လည်ဝယ်ယူပေးပါခင်ဗျာ။`,
         {
           inline_keyboard: [
