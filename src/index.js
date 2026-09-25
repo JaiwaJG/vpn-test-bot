@@ -79,7 +79,7 @@ async function getStartMenu(env, userId) {
   }
 
   const welcomeText = 
-    `👋 <b>မင်္ဂလာပါ!</b>\n\n` +
+    `👋 <b>မင်္ဂလာပါ ${msg.from.first_name || ""}!</b>\n\n` +
     `Outline VPN Test Key များကို ဤနေရာတွင် အခမဲ့ ရယူနိုင်ပါသည်။\n\n` +
     `📌 <b>စည်းကမ်းချက်များ:</b>\n` +
     `• User တစ်ယောက်လျှင် <b>(၁) လ လျှင် (၁) ကြိမ်သာ</b> ရယူနိုင်ပါသည်။\n` +
