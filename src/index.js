@@ -146,8 +146,8 @@ async function handleMessage(msg, env) {
       await env.DB.prepare("UPDATE users SET pending_topup_amount = ? WHERE telegram_id = ?").bind(amount, user.telegram_id).run();
 
       const payInfoMsg = 
-        `💳 <b>ငွေလွှဲပေးရမည့် အချက်အလက်များ</b>\n\n` +
-        `<b>━━━━━━━━━━━━━━</b>\n` +
+        `💳 <b>ငွေလွှဲပေးရမည့် အချက်အလက်များ</b>\n` +
+        `<b>━━━━━━━━━━━━━━</b>\n\n` +
         `💰 ဖြည့်သွင်းမည့် ပမာဏ: <b>${amount.toLocaleString()} Ks</b>\n\n` +
         `အောက်ပါ အကောင့်တစ်ခုခုသို့ လွှဲပေးပါခင်ဗျာ-\n` +
         `📱 <b>KBZPay:</b> <code>09456545321</code> (Gum Seng Lat)\n` +
@@ -463,8 +463,8 @@ async function handleCallback(cb, env) {
   // Balance
   if (data === "menu_balance") {
     const balMsg = 
-      `💵 <b>သင့် လက်ကျန်ငွေ အခြေအနေ</b>\n\n` +
-      `<b>━━━━━━━━━━━━━━</b>\n` +
+      `💵 <b>သင့် လက်ကျန်ငွေ အခြေအနေ</b>\n` +
+      `<b>━━━━━━━━━━━━━━</b>\n\n` +
       `👤 အသုံးပြုသူ: <b>${cb.from.first_name || ""}</b>\n` +
       `🆔 Telegram ID: <code>${user.telegram_id}</code>\n` +
       `💰 လက်ရှိ Balance: <b>${balance.toLocaleString()} Ks</b>\n\n` +
@@ -496,8 +496,8 @@ async function handleCallback(cb, env) {
 
     const regDate = user.created_at ? formatMyanmarTime(new Date(user.created_at.replace(" ", "T") + "Z")) : "N/A";
     let profMsg = 
-      `👤 <b>သင့် Profile အချက်အလက်များ</b>\n\n` +
-      `<b>━━━━━━━━━━━━━━</b>\n` +
+      `👤 <b>သင့် Profile အချက်အလက်များ</b>\n` +
+      `<b>━━━━━━━━━━━━━━</b>\n\n` +
       `• 🆔 Telegram ID: <code>${user.telegram_id}</code>\n` +
       `• 👤 အမည်: <b>${cb.from.first_name || ""}</b>\n` +
       `• 💰 Wallet Balance: <b>${balance.toLocaleString()} Ks</b>\n` +
@@ -580,8 +580,8 @@ async function handleCallback(cb, env) {
     }
 
     const detailMsg = 
-      `📦 <b>ဝယ်ယူထားသော Key အချက်အလက် (#${order.id})</b>\n\n` +
-      `<b>━━━━━━━━━━━━━━</b>\n` +
+      `📦 <b>ဝယ်ယူထားသော Key အချက်အလက် (#${order.id})</b>\n` +
+      `<b>━━━━━━━━━━━━━━</b>\n\n` +
       `• 💎 <b>Package:</b> ${pkgInfo.gb || order.category.toUpperCase()}\n` +
       `• 💰 <b>ဝယ်ယူခဲ့သည့် ဈေးနှုန်း:</b> ${order.price.toLocaleString()} Ks\n` +
       `• 📅 <b>ဝယ်ယူခဲ့သည့် အချိန်:</b> ${formatMyanmarTime(buyDate)}\n` +
@@ -603,8 +603,8 @@ async function handleCallback(cb, env) {
   // Terms
   if (data === "menu_terms") {
     const termsMsg = 
-      `📜 <b>ဝန်ဆောင်မှု စည်းကမ်းချက်များ</b>\n\n` +
-      `<b>━━━━━━━━━━━━━━</b>\n` +
+      `📜 <b>ဝန်ဆောင်မှု စည်းကမ်းချက်များ</b>\n` +
+      `<b>━━━━━━━━━━━━━━</b>\n\n` +
       `၁။ ငွေလွှဲပေးပို့ရာတွင် Note (မှတ်ချက်) နေရာ၌ VPN / Key / Outline စသည့် စာလုံးများ လုံးဝ (လုံးဝ) မရေးရပါ။\n` +
       `၂။ ရရှိလာသော Key သည် မိမိတစ်ဦးတည်းအတွက်သာ ဖြစ်ပြီး အခြားသူများနှင့် မျှဝေသုံးစွဲခြင်း မပြုရပါ။\n` +
       `၃။ ငွေလွှဲပြေစာအတု ပို့ဆောင်ပါက သင့်အကောင့်အား Bot အသုံးပြုခွင့် အပြီးအပိုင် ရပ်ဆိုင်း (Ban) သွားမည် ဖြစ်ပါသည်။\n` +
@@ -620,8 +620,8 @@ async function handleCallback(cb, env) {
   // Top Up: ပမာဏ ရွေးချယ်မှု
   if (data === "menu_topup") {
     const topupSelectMsg = 
-      `💳 <b>ငွေဖြည့်သွင်းမည့် ပမာဏ ရွေးချယ်ပါ</b>\n\n` +
-      `<b>━━━━━━━━━━━━━━</b>\n` +
+      `💳 <b>ငွေဖြည့်သွင်းမည့် ပမာဏ ရွေးချယ်ပါ</b>\n` +
+      `<b>━━━━━━━━━━━━━━</b>\n\n` +
       `Wallet ထဲသို့ ဖြည့်သွင်းလိုသော ပမာဏကို အောက်ပါ ခလုတ်လေးများမှ ရွေးချယ်ပေးပါခင်ဗျာ။ စိတ်ကြိုက်ပမာဏလည်း ရိုက်ထည့်နိုင်ပါတယ်နော် 👇`;
     await editMsg(topupSelectMsg, {
       inline_keyboard: [
@@ -640,8 +640,8 @@ async function handleCallback(cb, env) {
     await env.DB.prepare("UPDATE users SET pending_topup_amount = -1 WHERE telegram_id = ?").bind(userId).run();
 
     const customPromptMsg = 
-      `✍️ <b>စိတ်ကြိုက် ပမာဏ ရိုက်ထည့်ခြင်း</b>\n\n` +
-      `<b>━━━━━━━━━━━━━━</b>\n` +
+      `✍️ <b>စိတ်ကြိုက် ပမာဏ ရိုက်ထည့်ခြင်း</b>\n` +
+      `<b>━━━━━━━━━━━━━━</b>\n\n` +
       `မိမိ ဖြည့်သွင်းလိုသော ပမာဏကို <b>ကိန်းဂဏန်းသီးသန့်</b> ဤ Chat ထဲသို့ စာရိုက်၍ ပေးပို့ပေးပါခင်ဗျာ။\n\n` +
       `• အနည်းဆုံး ပမာဏ: <b>2,500 Ks</b>\n` +
       `• ဥပမာ ပုံစံ: <code>2500</code>, <code>5000</code>, <code>20000</code>`;
@@ -660,8 +660,8 @@ async function handleCallback(cb, env) {
     await env.DB.prepare("UPDATE users SET pending_topup_amount = ? WHERE telegram_id = ?").bind(amount, userId).run();
 
     const payInfoMsg = 
-      `💳 <b>ငွေလွှဲပေးရမည့် အချက်အလက်များ</b>\n\n` +
-      `<b>━━━━━━━━━━━━━━</b>\n` +
+      `💳 <b>ငွေလွှဲပေးရမည့် အချက်အလက်များ</b>\n` +
+      `<b>━━━━━━━━━━━━━━</b>\n\n` +
       `💰 ဖြည့်သွင်းမည့် ပမာဏ: <b>${amount.toLocaleString()} Ks</b>\n\n` +
       `အောက်ပါ အကောင့်တစ်ခုခုသို့ လွှဲပေးပါခင်ဗျာ-\n` +
       `📱 <b>KBZPay:</b> <code>09456545321</code> (Gum Seng Lat)\n` +
@@ -685,13 +685,14 @@ async function handleCallback(cb, env) {
   // Buy Outline Key: Packages List (ရှင်းလင်း သပ်ရပ်သော UI)
   if (data === "menu_buy") {
     const buyMenuText = 
-      `⚡️ <b>Outline VPN Package စာရင်းများနှင့် ဈေးနှုန်းများ</b>\n\n` +
-      `💰 သင့် လက်ရှိ Wallet Balance: <b>${balance.toLocaleString()} Ks</b>\n\n` +
+      `⚡️ <b>Outline VPN Package စာရင်းများနှင့် ဈေးနှုန်းများ</b>\n` +
+      `<b>━━━━━━━━━━━━━━</b>\n` +
+      `💰 သင့် လက်ရှိ Wallet Balance:<b>${balance.toLocaleString()} Ks</b>\n` +
       `<b>━━━━━━━━━━━━━━</b>\n` +
       `🔹 <b>50 GB Plan (ရက် ၃၀ သက်တမ်း)</b>\n` +
       `• Data Limit: <b>50 GB</b>\n` +
       `• သက်တမ်း: <b>30 Days</b>\n` +
-      `• စျေးနှုန်း: <b>2,500 Ks</b>\n\n` +
+      `• စျေးနှုန်း: <b>2,500 Ks</b>(ဈေးချို)\n\n` +
       `🔹 <b>100 GB Plan (၃၅ ရက် သက်တမ်း)</b>\n` +
       `• Data Limit: <b>100 GB</b>\n` +
       `• သက်တမ်း: <b>35 Days</b>\n` +
@@ -699,7 +700,7 @@ async function handleCallback(cb, env) {
       `🔹 <b>250 GB Plan (၇၅ ရက် သက်တမ်း)</b>\n` +
       `• Data Limit: <b>250 GB</b>\n` +
       `• သက်တမ်း: <b>75 Days</b>\n` +
-      `• စျေးနှုန်း: <b>10,500 Ks</b> (လူကြိုက်အများဆုံး)\n` +
+      `• စျေးနှုန်း: <b>10,500 Ks</b> (လူကြိုက်များ)\n` +
       `<b>━━━━━━━━━━━━━━</b>\n\n` +
       `ဝယ်ယူလိုသော Package ကို အောက်ပါ ခလုတ်လေးမှ ရွေးချယ်နိုင်ပါတယ်ခင်ဗျာ 👇`;
 
@@ -722,8 +723,8 @@ async function handleCallback(cb, env) {
 
     if (balance < price) {
       await editMsg(
-        `⚠️ <b>လက်ကျန်ငွေ မလုံလောက်သေးပါခင်ဗျာ!</b>\n\n` +
-        `<b>━━━━━━━━━━━━━━</b>\n` +
+        `⚠️ <b>လက်ကျန်ငွေ မလုံလောက်သေးပါခင်ဗျာ!</b>\n` +
+        `<b>━━━━━━━━━━━━━━</b>\n\n` +
         `• ကျသင့်ငွေ: <b>${price.toLocaleString()} Ks</b>\n` +
         `• သင့်လက်ကျန်ငွေ: <b>${balance.toLocaleString()} Ks</b>\n\n` +
         `ကျေးဇူးပြု၍ Wallet ထဲသို့ ငွေဖြည့်သွင်းပြီးမှ ပြန်လည် ဝယ်ယူပေးပါနော်။`,
@@ -743,8 +744,8 @@ async function handleCallback(cb, env) {
 
     if (!keyItem) {
       await editMsg(
-        `😔 <b>စိတ်မကောင်းပါခင်ဗျာ!</b>\n\n` +
-        `<b>━━━━━━━━━━━━━━</b>\n` +
+        `😔 <b>စိတ်မကောင်းပါခင်ဗျာ!</b>\n` +
+        `<b>━━━━━━━━━━━━━━</b>\n\n` +
         `လက်ရှိတွင် <b>[${category.toUpperCase()}]</b> Key များ Stock ပြတ်လပ်နေပါသဖြင့် Admin ဘက်မှ Stock ဖြည့်တင်းချိန်ကို စောင့်ဆိုင်းပေးပါခင်ဗျာ။`,
         {
           inline_keyboard: [
@@ -765,8 +766,8 @@ async function handleCallback(cb, env) {
 
     const pkgInfo = PACKAGES[category] || { days: 30, gb: category };
     const deliveryMsg = 
-      `🎉 <b>ဝယ်ယူမှု အောင်မြင်ပါပြီခင်ဗျာ!</b>\n\n` +
-      `<b>━━━━━━━━━━━━━━</b>\n` +
+      `🎉 <b>ဝယ်ယူမှု အောင်မြင်ပါပြီခင်ဗျာ!</b>\n` +
+      `<b>━━━━━━━━━━━━━━</b>\n\n` +
       `• 📦 <b>Package:</b> ${pkgInfo.gb} (${pkgInfo.days} ရက် သက်တမ်း)\n` +
       `• 💰 <b>ကျသင့်ငွေ:</b> ${price.toLocaleString()} Ks\n\n` +
       `🔑 <b>သင့် Outline Key:</b>\n` +
@@ -795,8 +796,8 @@ async function handleCallback(cb, env) {
         const hours = Math.floor((remainingMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
 
         await editMsg(
-          `<b>Test Key</b>\n\n ` +
-          `<b>━━━━━━━━━━━━━━</b>\n` +
+          `<b>Test Key</b>\n` +
+          `<b>━━━━━━━━━━━━━━</b>\n\n` +
           `⚠️<b>မင်္ဂလာပါခင်ဗျာ၊ သင်သည် Test Key ရယူထားပြီး ဖြစ်ပါသည်!</b>\n\n` +
           `• 📅 ရယူခဲ့သည့်ရက်: <b>${formatMyanmarTime(lastClaim)}</b>\n` +
           `• ⏳ နောက်တစ်ကြိမ် ရယူနိုင်မည့်ရက်: <b>${formatMyanmarTime(nextDate)}</b>\n\n` +
@@ -836,8 +837,8 @@ async function handleCallback(cb, env) {
     ]);
 
     await editMsg(
-      `🎉 <b>သင့်အတွက် Outline Free Test Key ရရှိပါပြီခင်ဗျာ!</b>\n\n` +
-      `<b>━━━━━━━━━━━━━━</b>\n` +
+      `🎉 <b>သင့်အတွက် Outline Free Test Key ရရှိပါပြီခင်ဗျာ!</b>\n` +
+      `<b>━━━━━━━━━━━━━━</b>\n\n` +
       `<code>${testKeyItem.access_key}</code>\n\n` +
       `👆 <i>Key စာသားကို ဖိနှိပ် (Tap) ၍ Copy ကူးယူအသုံးပြုနိုင်ပါတယ်ခင်ဗျာ။</i>`,
       {
