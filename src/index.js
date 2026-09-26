@@ -621,6 +621,7 @@ async function handleCallback(cb, env) {
   if (data === "menu_topup") {
     const topupSelectMsg = 
       `💳 <b>ငွေဖြည့်သွင်းမည့် ပမာဏ ရွေးချယ်ပါ</b>\n\n` +
+      `<b>━━━━━━━━━━━━━━</b>\n` +
       `Wallet ထဲသို့ ဖြည့်သွင်းလိုသော ပမာဏကို အောက်ပါ ခလုတ်လေးများမှ ရွေးချယ်ပေးပါခင်ဗျာ။ စိတ်ကြိုက်ပမာဏလည်း ရိုက်ထည့်နိုင်ပါတယ်နော် 👇`;
     await editMsg(topupSelectMsg, {
       inline_keyboard: [
