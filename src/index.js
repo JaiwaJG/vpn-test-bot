@@ -293,7 +293,7 @@ async function handleCallback(cb, env) {
 
       await tg(env, "sendMessage", {
         chat_id: targetUserId,
-        text: `🎉 <b>Deposit Approved!</b>\n\nYour wallet has been credited with <b>+${amount.toLocaleString()} MMK</b>.\nYou can now purchase Outline VPN keys anytime! ✨`,
+        text: `${e("SUCCESS", "🎉")} <b>Deposit Approved!</b>\n\nYour wallet has been credited with <b>+${amount.toLocaleString()} MMK</b>.\nYou can now purchase Outline VPN keys anytime! ✨`,
         parse_mode: "HTML",
         reply_markup: KB.getMainKeyboard(),
       });
@@ -366,7 +366,7 @@ async function handleCallback(cb, env) {
       `• ${e("USER_ID", "🆔")} Telegram ID: <code>${user.telegram_id}</code>\n` +
       `• ${e("BALANCE", "💰")} Current Balance: <b>${balance.toLocaleString()} MMK</b>` +
       `</blockquote>\n\n` +
-      `<i>Need more credits? Tap Deposit to top up your wallet 👇</i>`;
+      `<i>Need more credits? Tap Deposit to top up your wallet.</i> ${e("DOWN", "👇")}`;
     await editMsg(balMsg, {
       inline_keyboard: [
         [{ text: "💳 Deposit Funds", callback_data: "menu_topup" }],

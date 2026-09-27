@@ -22,7 +22,7 @@ export function getWelcomeMessage(firstName) {
   return (
     `${e("CROWN", "👑")} <b>Welcome to ${CONFIG.STORE_NAME}!</b>\n` +
     `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
-    `Hello <b>${firstName || "Customer"}</b>! 👋\n\n` +
+    `Hello <b>${firstName || "Customer"}</b> ${e("STAR", "✨" )} \n\n` +
     `We provide ultra-fast, stable, and encrypted <b>Outline VPN Access Keys</b>. Instant automated delivery after purchase.\n\n` +
     `<blockquote>` +
     `${e("SHOP", "🛍")} <b>Shop</b> — Browse & buy Outline Private Key packages\n` +
