@@ -55,7 +55,7 @@ export const CONFIG = {
     SUPPORT: "6057677034543391682",
 
     // Payment Specific Icons
-    KPAY: "5470060791883374114",          // KBZPay Custom Logo Emoji
+    KPAY: "6055487705029025287",          // KBZPay Custom Logo Emoji
     AYAPAY: "6057575338307754857",        // AYA Pay Custom Logo Emoji
     WALLET: "4972482444025398275",
 
