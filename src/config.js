@@ -29,47 +29,47 @@ export const CONFIG = {
   // 🌟 Premium / Custom Telegram Emoji IDs (@getidsbot ဖြင့် ရယူနိုင်သည်)
   EMOJIS: {
     // Brand & UI Icons
-    CROWN: "",         // e.g. "5368324170671202287"
-    FIRE: "",
-    VERIFIED: "",
-    USER_ID: "",
+    CROWN: "6059615271679696088",         // e.g. "5368324170671202287"
+    FIRE: "5289722755871162900",
+    VERIFIED: "5289722755871162900",
+    USER_ID: "6309581148536183273",
     STAR: "",
     DOT: "",
-    INFO: "",
-    CLOCK: "",
-    FLASH: "",
-    STATUS: "",
-    DOWN: "",
-    UP: "",
+    INFO: "5258503720928288433",
+    CLOCK: "5451732530048802485",
+    FLASH: "5460991276948143687",
+    STATUS: "5458905456145612048",
+    DOWN: "6057889171568075218",
+    UP: "6055562669388210100",
 
     // Menu & Buttons Icons
-    SHOP: "",
-    STOCK: "",
-    UNSTOCK: "",
-    FALSE: "",
-    FREEBIES: "",
-    DEPOSIT: "",
-    BALANCE: "",
-    PROFILE: "",
-    TERMS: "",
-    SUPPORT: "",
+    SHOP: "5431499171045581032",
+    STOCK: "5154930575995306994",
+    UNSTOCK: "5458779239941681169",
+    FALSE: "5460991276948143687",
+    FREEBIES: "6089047892285200811",
+    DEPOSIT: "4972482444025398275",
+    BALANCE: "5264713049637409446",
+    PROFILE: "5258011929993026890",
+    TERMS: "5258503720928288433",
+    SUPPORT: "6057677034543391682",
 
     // Payment Specific Icons
-    KPAY: "",          // KBZPay Custom Logo Emoji
-    AYAPAY: "",        // AYA Pay Custom Logo Emoji
-    WALLET: "",
+    KPAY: "5470060791883374114",          // KBZPay Custom Logo Emoji
+    AYAPAY: "6057575338307754857",        // AYA Pay Custom Logo Emoji
+    WALLET: "4972482444025398275",
 
     // Operations
-    SUCCESS: "",
-    DONE: "",
-    WARNING: "",
-    BAN: "",
-    KEY: "",
-    TRASH: "",
-    SLIP: "",
-    DATE: "",
-    PIN: "",
-    CUSTOM: "",
+    SUCCESS: "6300915244562651655",
+    DONE: "5260463209562776385",
+    WARNING: "5215677343594457295",
+    BAN: "6091190140368071716",
+    KEY: "5330115548900501467",
+    TRASH: "5330115548900501467",
+    SLIP: "5444856076954520455",
+    DATE: "5258105663359294787",
+    PIN: "5258461531464539536",
+    CUSTOM: "5470060791883374114",
   }
 };
 
