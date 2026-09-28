@@ -397,11 +397,13 @@ async function handleCallback(cb, env) {
       `${e("PROFILE", "👤")} <b>Your Account Profile</b>\n` +
       `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
       `<blockquote>` +
-      `• ${e("USER_ID", "🆔")} User ID: <code>${user.telegram_id}</code>\n` +
       `• ${e("PROFILE", "👤")} Name: <b>${cb.from.first_name || ""}</b>\n` +
+      `• ${e("USER_ID", "🆔")} User ID: <code>${user.telegram_id}</code>\n` +
+      `• ${e("DATE", "📅")} Member Since: <b>${regDate}</b>` +
+      `</blockquote>\n\n` +
+      `<blockquote>` +
       `• ${e("BALANCE", "💰")} Balance: <b>${balance.toLocaleString()} MMK</b>\n` +
       `• ${e("STOCK", "📦")} Keys Purchased: <b>${totalOrders} keys</b>\n` +
-      `• ${e("DATE", "📅")} Member Since: <b>${regDate}</b>` +
       `</blockquote>\n\n` +
       `${e("KEY", "🔑")} <b>Your Purchased Keys:</b>\n`;
 
@@ -417,12 +419,15 @@ async function handleCallback(cb, env) {
 
   // Key Details Viewer
   if (data.startsWith("view_ord_")) {
-    const [, , orderId, returnPage] = data.split("_");
+    const parts = data.split("_");
+    const orderId = parts[2];
+    const returnPage = parts[3] || 1;
+
     const order = await env.DB.prepare("SELECT * FROM orders WHERE id = ? AND user_id = ?").bind(orderId, userId).first();
 
     if (!order) {
       await editMsg("⚠️ Key record not found.", {
-        inline_keyboard: [[{ text: "🔙 Back to List", callback_data: `menu_profile_p_${returnPage || 1}` }]]
+        inline_keyboard: [[makeBtn("🔙 Back to List", "callback_data", `menu_profile_p_${returnPage || 1}`)]]
       });
       return;
     }

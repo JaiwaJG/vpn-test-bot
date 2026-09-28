@@ -30,7 +30,7 @@ export function getBuyPackagesKeyboard() {
       [makeBtn("Buy 50 GB — 2,500 MMK", "callback_data", "buy_pkg_50gb_2500", "primary", "BTN_SHOP")],
       [makeBtn("Buy 100 GB — 4,500 MMK", "callback_data", "buy_pkg_100gb_4500", "primary", "BTN_SHOP")],
       [makeBtn("Buy 250 GB — 10,500 MMK", "callback_data", "buy_pkg_250gb_10500", "primary", "BTN_SHOP")],
-      [makeBtn("Back to Home", "callback_data", "menu_home")]
+      [makeBtn("Back to Home", "callback_data", "menu_home", null, "BTN_HOME")]
     ]
   };
 }
@@ -42,8 +42,8 @@ export function getTopupKeyboard() {
       [makeBtn("2,500 MMK (50 GB Plan)", "callback_data", "topup_amt_2500")],
       [makeBtn("4,500 MMK (100 GB Plan)", "callback_data", "topup_amt_4500")],
       [makeBtn("10,500 MMK (250 GB Plan)", "callback_data", "topup_amt_10500")],
-      [makeBtn("Custom Deposit Amount", "callback_data", "topup_custom", "primary")],
-      [makeBtn("Back to Home", "callback_data", "menu_home")]
+      [makeBtn("Custom Deposit Amount", "callback_data", "topup_custom", "primary", "BTN_CUSTOM")],
+      [makeBtn("Back to Home", "callback_data", "menu_home", null, "BTN_HOME")]
     ]
   };
 }
@@ -68,7 +68,7 @@ export function getProfileOrdersKeyboard(orders, page, totalPages) {
   if (page < totalPages) navRow.push(makeBtn("Next ▶️", "callback_data", `menu_profile_p_${page + 1}`));
   if (navRow.length > 0) inlineKeyboard.push(navRow);
 
-  inlineKeyboard.push([makeBtn("Back to Home", "callback_data", "menu_home")]);
+  inlineKeyboard.push([makeBtn("Back to Home", "callback_data", "menu_home", null, "BTN_HOME")]);
   return { inline_keyboard: inlineKeyboard };
 }
 
@@ -80,8 +80,8 @@ export function getKeyDetailKeyboard(orderId, page, accessKey) {
       [makeBtn("Copy Key", "copy_text", accessKey, "primary", "BTN_COPY")],
       // ပုံထဲကလို Danger Color (အနီရောင်) Delete ခလုတ်
       [makeBtn("Delete", "callback_data", `del_conf_${orderId}_${page}`, "danger", "BTN_DELETE")],
-      [makeBtn("Back to List", "callback_data", `menu_profile_p_${page}`)],
-      [makeBtn("Main Menu", "callback_data", "menu_home")]
+      [makeBtn("Back to List", "callback_data", `menu_profile_p_${page}`, null, "BTN_BACK")],
+      [makeBtn("Main Menu", "callback_data", "menu_home", null, "BTN_HOME")]
     ]
   };
 }
