@@ -198,11 +198,11 @@ async function handleMessage(msg, env) {
         const statsMsg =
         `${e("STATUS", "📊")} <b>Store Analytics & Revenue Report.</b>\n` +
         `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
-        `<blockquote>\n\n +` +
+        `<blockquote>\n` +
         `• ${e("BALANCE", "💰")} Total Revenue: <b>${totalRev.toLocaleString()} MMK</b>\n` +
         `• ${e("STOCK", "📦")} Total Sales: <b>${totalSales}</b>\n` +
         `• ${e("USERS", "👥")} Total Users: <b>${totalUsers}</b>\n\n` +
-        `</blockquote>\n\n +` +
+        `</blockquote>\n\n` +
         `<b>Report Generated: ${MSG.formatMyanmarTime(new Date())}</b>`; 
 
         await tg(env, "sendMessage", {
@@ -325,11 +325,11 @@ async function handleCallback(cb, env) {
   const statsMsg = 
   `${e("STATUS", "📊")} <b>Store Analytics & Revenue Report (Refreshed)</b>\n` +
   `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
-  `<blockquote>\n\n +` +
+  `<blockquote>\n` +
   `• ${e("BALANCE", "💰")} Total Revenue: <b>${totalRev.toLocaleString()} MMK</b>\n` +
   `• ${e("STOCK", "📦")} Total Sales: <b>${totalSales}</b>\n` +
   `• ${e("USERS", "👥")} Total Users: <b>${totalUsers}</b>\n\n` +
-  `</blockquote>\n\n +` +
+  `</blockquote>\n\n` +
   `<i>Last updated: ${MSG.formatMyanmarTime(new Date())}</i>`;
 
   await editMsg(statsMsg, KB.getStatsRefreshKeyboard());
@@ -778,7 +778,7 @@ async function handleCallback(cb, env) {
       `<code>${testKeyItem.access_key}</code>\n\n` +
       `${e("DOWN", "👆")} <i>Tap the copy button below or tap the code to copy ${e("KEY", "🔑")} Test Key.</i>`,
       {
-        inline_keyboard: getTestKeyActionKeyboard(testKeyItem.access_key)
+        inline_keyboard: KB.getTestKeyActionKeyboard(testKeyItem.access_key)
       }
     );
     return;
@@ -793,7 +793,7 @@ async function handleCallback(cb, env) {
       `<code>${keyStr}</code>\n\n` +
       `${e("DOWN", "👆")} <i>Tap the copy button below or tap the code to copy ${e("KEY", "🔑")} Test Key..</i>`,
       {
-        inline_keyboard: getTestKeyActionKeyboard(keyStr)
+        inline_keyboard: KB.getTestKeyActionKeyboard(keyStr)
       }
     );
   }
