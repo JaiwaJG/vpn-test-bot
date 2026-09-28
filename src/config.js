@@ -100,3 +100,21 @@ export function btnIcon(emojiType, colorTheme = "PRIMARY", fallbackUnicode = "")
   const icon = fallbackUnicode || theme;
   return `${icon} `;
 }
+
+// Inline Keyboard ခလုတ် Helper (Style နှင့် Custom Emoji တည်ဆောက်ခြင်း)
+export function makeBtn(title, actionType, actionValue, style = null, emojiIdKey = null) {
+  const btn = { text: title };
+
+  if (actionType === "callback_data") btn.callback_data = actionValue;
+  if (actionType === "url") btn.url = actionValue;
+  if (actionType === "copy_text") btn.copy_text = { text: actionValue };
+
+  if (style) btn.style = style;
+
+  const emojiId = emojiIdKey ? CONFIG.EMOJIS[emojiIdKey] : null;
+  if (emojiId && emojiId.trim() !== "") {
+    btn.icon_custom_emoji_id = emojiId.trim();
+  }
+
+  return btn;
+}
