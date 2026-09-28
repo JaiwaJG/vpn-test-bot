@@ -213,6 +213,47 @@ async function handleMessage(msg, env) {
     }
   }
 
+      // 📢 Broadcast Announcement to All Users
+    if (text.startsWith("/broadcast")) {
+      const broadcastMsg = text.replace(/^\/broadcast(@\w+)?/, "").trim();
+      
+      if (!broadcastMsg) {
+        await tg(env, "sendMessage", { 
+          chat_id: chatId, 
+          text: `${e("WARNING", "⚠️")}<b>Usage:</b> <code>/broadcast Your message here...</code>`, 
+          parse_mode: "HTML" 
+        });
+        return;
+      }
+
+      // Ban မခံထားရတဲ့ active users အားလုံးကို ဆွဲထုတ်ခြင်း
+      const allUsers = await env.DB.prepare("SELECT telegram_id FROM users WHERE is_banned = 0").all();
+      const userList = allUsers.results || [];
+      let successCount = 0;
+
+      for (const u of userList) {
+        try {
+          await tg(env, "sendMessage", {
+            chat_id: u.telegram_id,
+            text: ` ${e("ANNOUNCE", "📢")} <b>Store Announcement</b>\n<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n${broadcastMsg}`,
+            parse_mode: "HTML"
+          });
+          successCount++;
+        } catch (e) {
+          // Bot ကို block ထားတဲ့ user တွေကို error မတက်ဘဲ ကျော်သွားမည်
+        }
+      }
+
+      await tg(env, "sendMessage", { 
+        chat_id: chatId, 
+        text: `${e("DONE", "✅")} Announcement sent to <b>${successCount}/${userList.length}</b> users.`, 
+        parse_mode: "HTML" 
+      });
+      return;
+    }
+
+
+
   // --- 3. STOCK MANAGEMENT GROUP COMMANDS ---
   if (stockGroupId && chatId === stockGroupId) {
     const cleanCmd = text.split("@")[0].split(" ")[0].split("\n")[0];
