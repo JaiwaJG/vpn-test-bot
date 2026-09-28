@@ -461,7 +461,7 @@ async function handleCallback(cb, env) {
       `<code>${order.access_key}</code>\n\n` +
       `${e("UP", "👆")} <i>Tap the code above to copy to clipboard.</i>`;
 
-    await editMsg(detailMsg, KB.getKeyDetailKeyboard(order.id, returnPage || 1));
+    await editMsg(detailMsg, KB.getKeyDetailKeyboard(order.id, returnPage, order.access_key));
     return;
   }
 

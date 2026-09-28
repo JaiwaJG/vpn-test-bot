@@ -5,7 +5,8 @@ export function getMainKeyboard() {
   return {
     inline_keyboard: [
       [
-        makeBtn("Buy Outline Key", "callback_data", "menu_buy", "primary", "BTN_SHOP"),
+        makeBtn("Buy Outline Key", "callback_data", "menu_buy", "success", "BTN_SHOP")],
+      [
         makeBtn("Free Test Key", "callback_data", "menu_test_key_info", null, "BTN_FREEBIES")
       ],
       [
@@ -39,9 +40,9 @@ export function getBuyPackagesKeyboard() {
 export function getTopupKeyboard() {
   return {
     inline_keyboard: [
-      [makeBtn("2,500 MMK (50 GB Plan)", "callback_data", "topup_amt_2500")],
-      [makeBtn("4,500 MMK (100 GB Plan)", "callback_data", "topup_amt_4500")],
-      [makeBtn("10,500 MMK (250 GB Plan)", "callback_data", "topup_amt_10500")],
+      [makeBtn("2,500 MMK (50 GB Plan)", "callback_data", "success", "topup_amt_2500")],
+      [makeBtn("4,500 MMK (100 GB Plan)", "callback_data", "success", "topup_amt_4500")],
+      [makeBtn("10,500 MMK (250 GB Plan)", "callback_data", "success", "topup_amt_10500")],
       [makeBtn("Custom Deposit Amount", "callback_data", "topup_custom", "primary", "BTN_CUSTOM")],
       [makeBtn("Back to Home", "callback_data", "menu_home", null, "BTN_HOME")]
     ]
@@ -74,10 +75,11 @@ export function getProfileOrdersKeyboard(orders, page, totalPages) {
 
 // Key အသေးစိတ်ကြည့်ရှုသည့် စာမျက်နှာ (Copy & Delete Buttons)
 export function getKeyDetailKeyboard(orderId, page, accessKey) {
+  const safeKey = accessKey || "No-Key-Found";
   return {
     inline_keyboard: [
       // ပုံထဲကလို Tap နှိပ်ရုံဖြင့် Key တန်း copy ယူမည့် Primary Color ခလုတ်
-      [makeBtn("Copy Key", "copy_text", accessKey, "primary", "BTN_COPY")],
+      [makeBtn("Copy Key", "copy_text", safeKey, "primary", "BTN_COPY")],
       // ပုံထဲကလို Danger Color (အနီရောင်) Delete ခလုတ်
       [makeBtn("Delete", "callback_data", `del_conf_${orderId}_${page}`, "danger", "BTN_DELETE")],
       [makeBtn("Back to List", "callback_data", `menu_profile_p_${page}`, null, "BTN_BACK")],
