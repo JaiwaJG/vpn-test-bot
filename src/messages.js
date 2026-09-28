@@ -25,14 +25,14 @@ export function getWelcomeMessage(firstName) {
     `Hello <b>${firstName || "Customer"}</b> ${e("STAR", "✨" )} \n\n` +
     `We provide ultra-fast, stable, and encrypted <b>Outline VPN Access Keys</b>. Instant automated delivery after purchase.\n\n` +
     `<blockquote>` +
-    `${e("SHOP", "🛍")} <b>Shop</b> — Browse & buy Outline Private Key packages\n` +
+    `${e("SHOP", "🛍")} <b>Shop</b> — Browse & buy Outline Private Key\n` +
     `${e("FREEBIES", "🎁")} <b>Freebies</b> — Claim monthly free test key\n` +
     `${e("DEPOSIT", "💳")} <b>Deposit</b> — Top up wallet balance\n` +
     `${e("PROFILE", "👤")} <b>My Profile</b> — Balance, keys & order history\n` +
     `${e("TERMS", "📜")} <b>Terms</b> — Store rules & usage policies` +
     `</blockquote>\n\n` +
-    `<b>Channel: @jaiwateam</b>`+
-    `<b>Select an option below to continue:</b>`
+    `<b>Channel: @jaiwateam</b>\n` +
+    `<b>Select an option below to continue.</b>`
   );
 }
 
@@ -46,9 +46,13 @@ export function getPackageListMessage(balance) {
     `${e("DOT", "🔹")} <b>50 GB Plan (30 Days)</b>\n` +
     `• Data: 50 GB | High-Speed Singapore\n` +
     `• Price: <b>2,500 MMK</b>\n\n` +
+    `</blockquote>\n\n` +
+    `<blockquote>` +
     `${e("DOT", "🔹")} <b>100 GB Plan (35 Days)</b>\n` +
     `• Data: 100 GB | High-Speed Singapore\n` +
     `• Price: <b>4,500 MMK</b>\n\n` +
+    `</blockquote>\n\n` +
+    `<blockquote>` +
     `${e("DOT", "🔹")} <b>250 GB Plan (75 Days)</b>\n` +
     `• Data: 250 GB | High-Speed Singapore\n` +
     `• Price: <b>10,500 MMK</b> (Most Popular)` +
@@ -65,10 +69,8 @@ export function getPaymentInfoMessage(amount) {
     `${e("BALANCE", "💰")} <b>Required Amount:</b> <code>${amount.toLocaleString()} MMK</code>\n\n` +
     `Please transfer the exact amount to one of our verified accounts:\n\n` +
     `<blockquote>` +
-    `${e("KPAY", "📱")} <b>KBZPay:</b> <code>${CONFIG.PAYMENT.PHONE}</code>\n` +
-    `• Name: <b>${CONFIG.PAYMENT.NAME}</b>\n\n` +
-    `${e("AYAPAY", "📱")} <b>AYAPay:</b> <code>${CONFIG.PAYMENT.PHONE}</code>\n` +
-    `• Name: <b>${CONFIG.PAYMENT.NAME}</b>` +
+    `${e("KPAY", "📱")} <b>KBZPay:</b> <code>${CONFIG.PAYMENT.PHONE}</code> <b>${CONFIG.PAYMENT.NAME}</b>\n\n` +
+    `${e("AYAPAY", "📱")} <b>AYAPay:</b> <code>${CONFIG.PAYMENT.PHONE}</code> <b>${CONFIG.PAYMENT.NAME}</b>\n` +
     `</blockquote>\n\n` +
     `${e("WARNING", "⚠️")} <b>Important Transfer Rules:</b>\n` +
     `• Do <b>NOT</b> write VPN, Outline, or Store names in the transaction note.\n` +
