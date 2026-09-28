@@ -66,7 +66,6 @@ async function handleMessage(msg, env) {
     if (text.startsWith("/start")) {
       await env.DB.prepare("UPDATE users SET pending_topup_amount = 0 WHERE telegram_id = ?").bind(user.telegram_id).run();
       
-      // Deep Link: /start menu_buy
       const param = text.split(" ")[1];
       if (param === "menu_buy") {
         await tg(env, "sendMessage", {
@@ -182,35 +181,35 @@ async function handleMessage(msg, env) {
       return;
     }
 
-    if (paymentGroupId && chatId === paymentGroupId) {
-      if (text === "/stats" || text.startsWith("/stats@")) {
-        const totalReveneRes = await env.DB.prepare(
-          "SELECT SUM(price) as total_rev, COUNT(*) as total_orders FROM orders"
-        ).first();
-        const totalUsersRes = await env.DB.prepare(
-          "SELECT COUNT(*) as count FROM users"
-        ).first();
+    if (text === "/stats" || text.startsWith("/stats@")) {
+      const totalReveneRes = await env.DB.prepare(
+        "SELECT SUM(price) as total_rev, COUNT(*) as total_orders FROM orders"
+      ).first();
+      const totalUsersRes = await env.DB.prepare(
+        "SELECT COUNT(*) as count FROM users"
+      ).first();
 
-        const totalRev = totalReveneRes?.total_rev || 0;
-        const totalSales = totalReveneRes?.total_orders || 0;
-        const totalUsers = totalUsersRes?.count || 0;
+      const totalRev = totalReveneRes?.total_rev || 0;
+      const totalSales = totalReveneRes?.total_orders || 0;
+      const totalUsers = totalUsersRes?.count || 0;
 
-        const statsMsg =
+      const statsMsg =
         `${e("STATUS", "📊")} <b>Store Analytics & Revenue Report.</b>\n` +
         `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
-        `<blockquote>\n` +
+        `<blockquote>\n\n` +
         `• ${e("BALANCE", "💰")} Total Revenue: <b>${totalRev.toLocaleString()} MMK</b>\n` +
         `• ${e("STOCK", "📦")} Total Sales: <b>${totalSales}</b>\n` +
         `• ${e("USERS", "👥")} Total Users: <b>${totalUsers}</b>\n\n` +
         `</blockquote>\n\n` +
-        `<b>Report Generated: ${MSG.formatMyanmarTime(new Date())}</b>`; 
+        `<b>Report Generated: ${MSG.formatMyanmarTime(new Date())}</b>`;
 
-        await tg(env, "sendMessage", {
-          chat_id: chatId,
-          text: statsMsg,
-          parse_mode: "HTML",
-          reply_markup: KB.getStockRefreshKeyboard()
-        });
+      await tg(env, "sendMessage", {
+        chat_id: chatId,
+        text: statsMsg,
+        parse_mode: "HTML",
+        reply_markup: KB.getStatsRefreshKeyboard()
+      });
+      return;
     }
   }
 
@@ -317,26 +316,34 @@ async function handleCallback(cb, env) {
     return;
   }
 
-  // Payment Group: Refresh Stats Action if (paymentGroupId && chatId === paymentGroupId && data === "admin_refresh_stats") { const totalRevenueRes = await env.DB.prepare( "SELECT SUM(price) as total_rev, COUNT() as total_sales FROM orders" ).first(); const totalUsersRes = await env.DB.prepare( "SELECT COUNT() as count FROM users" ).first();
-  const totalRev = totalRevenueRes?.total_rev || 0;
-  const totalSales = totalRevenueRes?.total_sales || 0;
-  const totalUsers = totalUsersRes?.count || 0;
+  // --- B. PAYMENT GROUP STATS REFRESH ---
+  if (paymentGroupId && chatId === paymentGroupId && data === "admin_refresh_stats") {
+    const totalRevenueRes = await env.DB.prepare(
+      "SELECT SUM(price) as total_rev, COUNT(*) as total_sales FROM orders"
+    ).first();
+    const totalUsersRes = await env.DB.prepare(
+      "SELECT COUNT(*) as count FROM users"
+    ).first();
 
-  const statsMsg = 
-  `${e("STATUS", "📊")} <b>Store Analytics & Revenue Report (Refreshed)</b>\n` +
-  `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
-  `<blockquote>\n` +
-  `• ${e("BALANCE", "💰")} Total Revenue: <b>${totalRev.toLocaleString()} MMK</b>\n` +
-  `• ${e("STOCK", "📦")} Total Sales: <b>${totalSales}</b>\n` +
-  `• ${e("USERS", "👥")} Total Users: <b>${totalUsers}</b>\n\n` +
-  `</blockquote>\n\n` +
-  `<i>Last updated: ${MSG.formatMyanmarTime(new Date())}</i>`;
+    const totalRev = totalRevenueRes?.total_rev || 0;
+    const totalSales = totalRevenueRes?.total_sales || 0;
+    const totalUsers = totalUsersRes?.count || 0;
 
-  await editMsg(statsMsg, KB.getStatsRefreshKeyboard());
-  return;
+    const statsMsg = 
+      `${e("STATUS", "📊")} <b>Store Analytics & Revenue Report (Refreshed)</b>\n` +
+      `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
+      `<blockquote>\n\n` +
+      `• ${e("BALANCE", "💰")} Total Revenue: <b>${totalRev.toLocaleString()} MMK</b>\n` +
+      `• ${e("STOCK", "📦")} Total Sales: <b>${totalSales}</b>\n` +
+      `• ${e("USERS", "👥")} Total Users: <b>${totalUsers}</b>\n\n` +
+      `</blockquote>\n\n` +
+      `<i>Last updated: ${MSG.formatMyanmarTime(new Date())}</i>`;
+
+    await editMsg(statsMsg, KB.getStatsRefreshKeyboard());
+    return;
   }
 
-  // --- B. PAYMENT AUDIT ACTIONS ---
+  // --- C. PAYMENT AUDIT ACTIONS ---
   if (paymentGroupId && chatId === paymentGroupId) {
     if (data.startsWith("pay_app_")) {
       const [, , reqId, targetUserId, amountStr] = data.split("_");
@@ -403,7 +410,7 @@ async function handleCallback(cb, env) {
     }
   }
 
-  // --- C. USER INTERACTION NAVIGATION ---
+  // --- D. USER INTERACTION NAVIGATION ---
   const user = await getOrCreateUser(env, cb.from);
   if (user.is_banned === 1) {
     await editMsg("🚫 <b>Account Suspended.</b>", { inline_keyboard: [] });
@@ -635,7 +642,7 @@ async function handleCallback(cb, env) {
     return;
   }
 
-  // Key Purchasing Transaction (Atomic Batch)
+  // Key Purchasing Transaction
   if (data.startsWith("buy_pkg_")) {
     const [, , category, priceStr] = data.split("_");
     const price = Number(priceStr);
@@ -676,7 +683,6 @@ async function handleCallback(cb, env) {
       return;
     }
 
-    // Atomic DB execution: deduct balance, remove key from pool, log order
     await env.DB.batch([
       env.DB.prepare("UPDATE users SET balance = balance - ?, total_orders = total_orders + 1 WHERE telegram_id = ?").bind(price, userId),
       env.DB.prepare("DELETE FROM keys WHERE id = ?").bind(keyItem.id),
@@ -690,7 +696,6 @@ async function handleCallback(cb, env) {
       ]
     });
 
-    // Public Sales Channel Alert ပို့ဆောင်ခြင်း
     const salesChannelId = String(env.SALES_CHANNEL_ID || "").trim();
     if (salesChannelId) {
       try {
