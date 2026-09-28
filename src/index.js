@@ -63,8 +63,21 @@ async function handleMessage(msg, env) {
       return;
     }
 
-    if (text === "/start") {
+    if (text.startsWith("/start")) {
       await env.DB.prepare("UPDATE users SET pending_topup_amount = 0 WHERE telegram_id = ?").bind(user.telegram_id).run();
+      
+      // Deep Link: /start menu_buy
+      const param = text.split(" ")[1];
+      if (param === "menu_buy") {
+        await tg(env, "sendMessage", {
+          chat_id: chatId,
+          text: MSG.getPackageListMessage(Number(user.balance || 0)),
+          parse_mode: "HTML",
+          reply_markup: KB.getBuyPackagesKeyboard(),
+        });
+        return;
+      }
+
       await tg(env, "sendMessage", {
         chat_id: chatId,
         text: MSG.getWelcomeMessage(msg.from.first_name),
@@ -293,7 +306,7 @@ async function handleCallback(cb, env) {
 
       await tg(env, "sendMessage", {
         chat_id: targetUserId,
-        text: `${e("SUCCESS", "🎉")} <b>Deposit Approved!</b>\n\nYour wallet has been credited with <b>+${amount.toLocaleString()} MMK</b>.\nYou can now purchase Outline VPN keys anytime! ✨`,
+        text: `${e("SUCCESS", "🎉")} <b>Deposit Approved!</b>\n\nYour wallet has been credited with <b>+${amount.toLocaleString()} MMK</b>.\nYou can now purchase Outline VPN keys anytime! ${e("STAR", "✨")} `,
         parse_mode: "HTML",
         reply_markup: KB.getMainKeyboard(),
       });
@@ -496,7 +509,7 @@ async function handleCallback(cb, env) {
 
     await editMsg(finishMsg, {
       inline_keyboard: [
-        [makeBtn ("Back to Profile", "callback_data", "menu_profile_p_1", null, "BTN_PROFILE")],
+        [makeBtn("Back to Profile", "callback_data", "menu_profile_p_1", null, "BTN_PROFILE")],
         [makeBtn("Main Menu", "callback_data", "menu_home", null, "BTN_HOME")]
       ]
     });
@@ -550,7 +563,7 @@ async function handleCallback(cb, env) {
       `• Examples: <code>2500</code>, <code>5000</code> or <code>20000</code>`;
 
     await editMsg(customPromptMsg, {
-      inline_keyboard: [[ makeBtn("Deposit", "callback_data", "menu_topup", null, "BTN_DEPOSIT")]]
+      inline_keyboard: [[makeBtn("Deposit", "callback_data", "menu_topup", null, "BTN_DEPOSIT")]]
     });
     return;
   }
@@ -561,7 +574,7 @@ async function handleCallback(cb, env) {
     await env.DB.prepare("UPDATE users SET pending_topup_amount = ? WHERE telegram_id = ?").bind(amount, userId).run();
 
     await editMsg(MSG.getPaymentInfoMessage(amount), {
-      inline_keyboard: [[ makeBtn("Change Amount", "callback_data", "menu_topup", null, "BTN_CUSTOM")]]
+      inline_keyboard: [[makeBtn("Change Amount", "callback_data", "menu_topup", null, "BTN_CUSTOM")]]
     });
     return;
   }
@@ -586,8 +599,8 @@ async function handleCallback(cb, env) {
         `Please top up your wallet balance to complete this purchase.`,
         {
           inline_keyboard: [
-            [ makeBtn("Deposit Fund", "callback_data", "menu_topup", null, "BTN_DEPOSIT")],
-            [ makeBtn("Back to Plans", "callback_data", "menu_buy", null, "BTN_SHOP")]
+            [makeBtn("Deposit Fund", "callback_data", "menu_topup", null, "BTN_DEPOSIT")],
+            [makeBtn("Back to Plans", "callback_data", "menu_buy", null, "BTN_SHOP")]
           ]
         }
       );
@@ -605,8 +618,8 @@ async function handleCallback(cb, env) {
         `We are currently out of stock for <b>[${category.toUpperCase()}]</b>. Admin has been notified to restock immediately.`,
         {
           inline_keyboard: [
-            [ makeBtn("Back to Plans", "callback_data", "menu_buy", null, "BTN_SHOP")],
-            [ makeBtn("Contact Support", "url", `https://t.me/${CONFIG.ADMIN_USERNAME}`, null, "BTN_SUPPORT") ]
+            [makeBtn("Back to Plans", "callback_data", "menu_buy", null, "BTN_SHOP")],
+            [makeBtn("Contact Support", "url", `https://t.me/${CONFIG.ADMIN_USERNAME}`, null, "BTN_SUPPORT")]
           ]
         }
       );
@@ -626,6 +639,21 @@ async function handleCallback(cb, env) {
         [makeBtn("Back to Home", "callback_data", "menu_home", null, "BTN_HOME")]
       ]
     });
+
+    // Public Sales Channel Alert ပို့ဆောင်ခြင်း
+    const salesChannelId = String(env.SALES_CHANNEL_ID || "").trim();
+    if (salesChannelId) {
+      try {
+        await tg(env, "sendMessage", {
+          chat_id: salesChannelId,
+          text: MSG.getChannelSaleMessage(cb.from.first_name, category, price, keyItem.access_key),
+          parse_mode: "HTML",
+          reply_markup: KB.getSalesChannelKeyboard()
+        });
+      } catch (err) {
+        console.error("Sales Channel notification failed:", err);
+      }
+    }
     return;
   }
 

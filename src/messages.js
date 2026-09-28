@@ -1,5 +1,13 @@
 import { CONFIG, e } from "./config.js";
 
+// Customer အမည်ကို privacy အရ ဖုံးအုပ်ပေးသည့် function
+export function maskName(name) {
+  if (!name) return "Anonymous";
+  const str = String(name).trim();
+  if (str.length <= 2) return str[0] + "*";
+  return str.slice(0, 2) + "*".repeat(Math.max(1, str.length - 2));
+}
+
 // Myanmar Standard Time (UTC+6:30)
 export function formatMyanmarTime(dateObj) {
   try {
@@ -22,7 +30,7 @@ export function getWelcomeMessage(firstName) {
   return (
     `${e("CROWN", "👑")} <b>Welcome to ${CONFIG.STORE_NAME}!</b>\n` +
     `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
-    `Hello <b>${firstName || "Customer"}</b> ${e("STAR", "✨" )} \n\n` +
+    `Hello <b>${firstName || "Customer"}</b> ${e("STAR", "✨")}\n\n` +
     `We provide ultra-fast, stable, and encrypted <b>Outline VPN Access Keys</b>. Instant automated delivery after purchase.\n\n` +
     `<blockquote>` +
     `${e("SHOP", "🛍")} <b>Shop</b> — Browse & buy Outline Private Key\n` +
@@ -31,7 +39,7 @@ export function getWelcomeMessage(firstName) {
     `${e("PROFILE", "👤")} <b>My Profile</b> — Balance, keys & order history\n` +
     `${e("TERMS", "📜")} <b>Terms</b> — Store rules & usage policies` +
     `</blockquote>\n\n` +
-    `<b>Channel: @jaiwateam</b>\n` +
+    `<b>Channel: @jaiwateam</b>\n\n` +
     `<b>Select an option below to continue.</b>`
   );
 }
@@ -61,7 +69,7 @@ export function getPackageListMessage(balance) {
   );
 }
 
-// 3. Deposit / Payment Info (KPay & AYAPay with Custom Emojis)
+// 3. Deposit / Payment Info
 export function getPaymentInfoMessage(amount) {
   return (
     `${e("DEPOSIT", "💳")} <b>Payment Transfer Instructions</b>\n` +
@@ -94,6 +102,22 @@ export function getKeyDeliveryMessage(category, price, accessKey) {
     `${e("KEY", "🔑")} <b>Your Outline VPN Key:</b>\n` +
     `<code>${accessKey}</code>\n\n` +
     `${e("UP", "👆")} <i>Tap the key to copy. Your purchased keys are always viewable in ${e("PROFILE", "👤")} <b>My Profile</b>.</i>`
+  );
+}
+
+// Public Channel Sale Alert
+export function getChannelSaleMessage(buyerName, category, price, accessKey) {
+  const pkg = CONFIG.PACKAGES[category] || { days: 30, gb: category };
+  return (
+    `${e("SUCCESS", "🎉")} <b>New Order Completed!</b>\n` +
+    `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
+    `<blockquote>` +
+    `${e("PROFILE", "👤")} <b>Customer:</b> ${maskName(buyerName)}\n` +
+    `${e("STOCK", "📦")} <b>Package:</b> ${pkg.gb} (${pkg.days} Days)\n` +
+    `${e("BALANCE", "💰")} <b>Amount Paid:</b> ${price.toLocaleString()} MMK\n` +
+    `${e("DATE", "📅")} <b>Delivered At:</b> ${formatMyanmarTime(new Date())}` +
+    `</blockquote>\n\n` +
+    `${e("FLASH", "⚡️")} <i>Instant automated 24/7 delivery by Our Bot.</i>`
   );
 }
 

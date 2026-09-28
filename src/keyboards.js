@@ -98,6 +98,15 @@ export function getDeleteConfirmKeyboard(orderId, page) {
   };
 }
 
+//Public sales channel
+export function getSalesChannelKeyboard() {
+  return {
+    inline_keyboard: [
+      [makeBtn("Buy Outline Key", "url", `https://t.me/${CONFIG.BOT_USERNAME}?start=menu_buy`, "primary", "BTN_SHOP")]
+    ]
+  };
+}
+
 // Payment Admin Audit Keyboard (Group ထဲတွင် Approve = Primary, Reject/Ban = Danger)
 export function getPaymentAdminKeyboard(requestId, targetUserId, amount) {
   return {
@@ -115,7 +124,7 @@ export function getPaymentAdminKeyboard(requestId, targetUserId, amount) {
 export function getStockRefreshKeyboard() {
   return {
     inline_keyboard: [
-      [makeBtn("Refresh Stock Status", "callback_data", "admin_refresh_stock", "primary")]
+      [makeBtn("Refresh Stock Status", "callback_data", "admin_refresh_stock", "primary", "BTN_REFRESH")]
     ]
   };
 }

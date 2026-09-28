@@ -1,6 +1,7 @@
 export const CONFIG = {
   STORE_NAME: "Outline Key Store",
   ADMIN_USERNAME: "JaiwaJG",
+  BOT_USERNAME: "jaiwateam_key_bot",
 
   // 📱 Payment Information
   PAYMENT: {
@@ -84,6 +85,7 @@ export const CONFIG = {
     BTN_APPROVE: "5260463209562776385",
     BTN_REJECT: "5974083768233760323",
     BTN_KEY: "5330115548900501467",
+    BTN_REFRESH: "5244758760429213978",
   }
 };
 
