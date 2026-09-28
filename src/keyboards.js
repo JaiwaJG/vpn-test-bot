@@ -1,23 +1,23 @@
-import { CONFIG, btnIcon } from "./config.js";
+import { CONFIG, btnIcon, e } from "./config.js";
 
 // Main Store Menu
 export function getMainKeyboard() {
   return {
     inline_keyboard: [
       [
-        { text: `${btnIcon("SHOP", "PRIMARY", "🛍")} Buy Outline Key`, callback_data: "menu_buy" },
-        { text: `${btnIcon("FREEBIES", "SPECIAL", "🎁")} Free Test Key`, callback_data: "menu_test_key_info" }
+        { text: `${e("SHOP", "PRIMARY", "🛍")} Buy Outline Key`, callback_data: "menu_buy" },
+        { text: `${e("FREEBIES", "SPECIAL", "🎁")} Free Test Key`, callback_data: "menu_test_key_info" }
       ],
       [
-        { text: `${btnIcon("DEPOSIT", "ACCENT", "💳")} Deposit`, callback_data: "menu_topup" },
-        { text: `${btnIcon("BALANCE", "SECONDARY", "💵")} My Balance`, callback_data: "menu_balance" }
+        { text: `${e("DEPOSIT", "ACCENT", "💳")} Deposit`, callback_data: "menu_topup" },
+        { text: `${e("BALANCE", "SECONDARY", "💵")} My Balance`, callback_data: "menu_balance" }
       ],
       [
-        { text: `${btnIcon("PROFILE", "SECONDARY", "👤")} My Profile`, callback_data: "menu_profile_p_1" },
-        { text: `${btnIcon("TERMS", "SECONDARY", "📜")} Terms of Service`, callback_data: "menu_terms" }
+        { text: `${e("PROFILE", "SECONDARY", "👤")} My Profile`, callback_data: "menu_profile_p_1" },
+        { text: `${e("TERMS", "SECONDARY", "📜")} Terms of Service`, callback_data: "menu_terms" }
       ],
       [
-        { text: `${btnIcon("SUPPORT", "PRIMARY", "💬")} Contact Support`, url: `https://t.me/${CONFIG.ADMIN_USERNAME}` }
+        { text: `${e("SUPPORT", "PRIMARY", "💬")} Contact Support`, url: `https://t.me/${CONFIG.ADMIN_USERNAME}` }
       ]
     ]
   };
