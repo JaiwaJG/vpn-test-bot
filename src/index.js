@@ -181,6 +181,34 @@ async function handleMessage(msg, env) {
       }
       return;
     }
+
+    if (paymentGroupId && chatId === paymentGroupId) {
+      if (text === "/stats" || text.startsWith("/stats@")) {
+        const totalReveneRes = await env.DB.prepare(
+          "SELECT SUM(price) as total_rev, COUNT(*) as total_orders FROM orders"
+        ).first();
+        const totalUsersRes = await env.DB.prepare(
+          "SELECT COUNT(*) as count FROM users"
+        ).first();
+
+        const totalRev = totalReveneRes?.total_rev || 0;
+        const totalSales = totalReveneRes?.total_orders || 0;
+        const totalUsers = totalUsersRes?.count || 0;
+
+        const statsMsg =
+        `${e("STATUS", "📊")} <b>Bot Statistics</b>\n` +
+        `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
+        `• ${e("BALANCE", "💰")} Total Revenue: <b>${totalRev.toLocaleString()} MMK</b>\n` +
+        `• ${e("STOCK", "📦")} Total Sales: <b>${totalSales}</b>\n` +
+        `• ${e("USERS", "👥")} Total Users: <b>${totalUsers}</b>\n` +
+        `<b>Report Generated: ${MSG.formatMyanmarTime(new Date())}</b>`; 
+
+        await tg(env, "sendMessage", {
+          chat_id: chatId,
+          text: statsMsg,
+          parse_mode: "HTML",
+        });
+    }
   }
 
   // --- 3. STOCK MANAGEMENT GROUP COMMANDS ---
@@ -726,9 +754,9 @@ async function handleCallback(cb, env) {
       `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
       `${e("KEY", "🔑")} <b>Access Key:</b>\n` +
       `<code>${testKeyItem.access_key}</code>\n\n` +
-      `${e("UP", "👆")} <i>Tap the key to copy to clipboard.</i>`,
+      `${e("DOWN", "👆")} <i>Tap the copy button below or tap the code to copy ${e("KEY", "🔑")} Test Key.</i>`,
       {
-        inline_keyboard: [[makeBtn("Back to Home", "callback_data", "menu_home", null, "BTN_HOME")]]
+        inline_keyboard: getTestKeyActionKeyboard(testKeyItem.access_key)
       }
     );
     return;
@@ -741,10 +769,10 @@ async function handleCallback(cb, env) {
       `${e("KEY", "🔑")} <b>Your Active Free Test Key</b>\n` +
       `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
       `<code>${keyStr}</code>\n\n` +
-      `${e("UP", "👆")} <i>Tap to copy to clipboard.</i>`,
+      `${e("DOWN", "👆")} <i>Tap the copy button below or tap the code to copy ${e("KEY", "🔑")} Test Key..</i>`,
       {
-        inline_keyboard: [[makeBtn("Back to Home", "callback_data", "menu_home", null, "BTN_HOME")]]
+        inline_keyboard: getTestKeyActionKeyboard(keyStr)
       }
     );
   }
-}
+}}

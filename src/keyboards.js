@@ -128,3 +128,14 @@ export function getStockRefreshKeyboard() {
     ]
   };
 }
+
+// Test Key Delivery & View Keyboard (Copy Button ပါဝင်သည်)
+export function getTestKeyActionKeyboard(accessKey) {
+  const safeKey = accessKey || "";
+  return {
+    inline_keyboard: [
+      [makeBtn("Copy Test Key", "copy_text", safeKey, "primary", "BTN_COPY")],
+      [makeBtn("Back to Home", "callback_data", "menu_home", null, "BTN_HOME")]
+    ]
+  };
+}
