@@ -139,3 +139,12 @@ export function getTestKeyActionKeyboard(accessKey) {
     ]
   };
 }
+
+// Payment Group: Stats Refresh Keyboard
+export function getStatsRefreshKeyboard() {
+  return {
+    inline_keyboard: [
+      [makeBtn("Refresh Stats", "callback_data", "admin_refresh_stats", "primary", "BTN_REFRESH")]
+    ]
+  };
+}

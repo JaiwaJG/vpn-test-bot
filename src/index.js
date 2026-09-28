@@ -196,17 +196,20 @@ async function handleMessage(msg, env) {
         const totalUsers = totalUsersRes?.count || 0;
 
         const statsMsg =
-        `${e("STATUS", "📊")} <b>Bot Statistics</b>\n` +
+        `${e("STATUS", "📊")} <b>Store Analytics & Revenue Report.</b>\n` +
         `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
+        `<blockquote>\n\n +` +
         `• ${e("BALANCE", "💰")} Total Revenue: <b>${totalRev.toLocaleString()} MMK</b>\n` +
         `• ${e("STOCK", "📦")} Total Sales: <b>${totalSales}</b>\n` +
-        `• ${e("USERS", "👥")} Total Users: <b>${totalUsers}</b>\n` +
+        `• ${e("USERS", "👥")} Total Users: <b>${totalUsers}</b>\n\n` +
+        `</blockquote>\n\n +` +
         `<b>Report Generated: ${MSG.formatMyanmarTime(new Date())}</b>`; 
 
         await tg(env, "sendMessage", {
           chat_id: chatId,
           text: statsMsg,
           parse_mode: "HTML",
+          reply_markup: KB.getStockRefreshKeyboard()
         });
     }
   }
@@ -302,7 +305,7 @@ async function handleCallback(cb, env) {
       counts.results.forEach(r => { stockMap[r.category] = r.count; });
     }
     const stockMsg = 
-      `${e("STATUS", "📊")} <b>Real-Time Key Stock Status (Refreshed)</b>\n` +
+      `${e("STATUS", "📊")} <b>Real-Time Key Stock Status (Refreshed).</b>\n` +
       `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
       `• ${e("FREEBIES", "🎁")} Free Test Keys: <b>${stockMap.test}</b> items\n` +
       `• ${e("DOT", "🔹")} 50 GB Keys: <b>${stockMap["50gb"]}</b> items\n` +
@@ -312,6 +315,25 @@ async function handleCallback(cb, env) {
 
     await editMsg(stockMsg, KB.getStockRefreshKeyboard());
     return;
+  }
+
+  // Payment Group: Refresh Stats Action if (paymentGroupId && chatId === paymentGroupId && data === "admin_refresh_stats") { const totalRevenueRes = await env.DB.prepare( "SELECT SUM(price) as total_rev, COUNT() as total_sales FROM orders" ).first(); const totalUsersRes = await env.DB.prepare( "SELECT COUNT() as count FROM users" ).first();
+  const totalRev = totalRevenueRes?.total_rev || 0;
+  const totalSales = totalRevenueRes?.total_sales || 0;
+  const totalUsers = totalUsersRes?.count || 0;
+
+  const statsMsg = 
+  `${e("STATUS", "📊")} <b>Store Analytics & Revenue Report (Refreshed)</b>\n` +
+  `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
+  `<blockquote>\n\n +` +
+  `• ${e("BALANCE", "💰")} Total Revenue: <b>${totalRev.toLocaleString()} MMK</b>\n` +
+  `• ${e("STOCK", "📦")} Total Sales: <b>${totalSales}</b>\n` +
+  `• ${e("USERS", "👥")} Total Users: <b>${totalUsers}</b>\n\n` +
+  `</blockquote>\n\n +` +
+  `<i>Last updated: ${MSG.formatMyanmarTime(new Date())}</i>`;
+
+  await editMsg(statsMsg, KB.getStatsRefreshKeyboard());
+  return;
   }
 
   // --- B. PAYMENT AUDIT ACTIONS ---
@@ -775,4 +797,4 @@ async function handleCallback(cb, env) {
       }
     );
   }
-}}
+}
