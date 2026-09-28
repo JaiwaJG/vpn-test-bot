@@ -1,4 +1,4 @@
-import { CONFIG, e } from "./config.js";
+import { CONFIG, e, makeBtn } from "./config.js";
 import * as KB from "./keyboards.js";
 import * as MSG from "./messages.js";
 
@@ -84,7 +84,7 @@ async function handleMessage(msg, env) {
           chat_id: chatId,
           text: `${e("WARNING", "⚠️")} <b>Invalid Amount!</b>\nMinimum deposit is <b>${CONFIG.PAYMENT.MIN_TOPUP.toLocaleString()} MMK</b>.\nPlease send digits only (e.g. <code>2500</code> or <code>5000</code>).`,
           parse_mode: "HTML",
-          reply_markup: { inline_keyboard: [[{ text: "🔙 Back to Home", callback_data: "menu_home" }]] }
+          reply_markup: { inline_keyboard: [[makeBtn("Back to Home", "callback_data", "menu_home")]] }
         });
         return;
       }
@@ -124,7 +124,7 @@ async function handleMessage(msg, env) {
 
       await tg(env, "sendMessage", {
         chat_id: chatId,
-        text: `${e("CLOCK", "⏳")} <b>Payment Slip Received!</b>\n\nAmount: <b>${currentAmt.toLocaleString()} MMK</b>\nOur team is verifying your payment. Your wallet balance will be credited automatically once approved.`,
+        text: `${e("CLOCK", "⏳")} <b>Payment Slip Received!</b>\n\nAmount: <b>${currentAmt.toLocaleString()} MMK</b>\nOur team is verifying your payment. Your wallet balance will be credited automatically once approved.\n\nHave A Great Day ${e("STAR", "✨" )}`,
         parse_mode: "HTML",
       });
 
@@ -369,8 +369,8 @@ async function handleCallback(cb, env) {
       `<i>Need more credits? Tap Deposit to top up your wallet.</i> ${e("DOWN", "👇")}`;
     await editMsg(balMsg, {
       inline_keyboard: [
-        [{ text: "💳 Deposit Funds", callback_data: "menu_topup" }],
-        [{ text: "🔙 Back to Home", callback_data: "menu_home" }]
+        [makeBtn("Deposit", "callback_data", "menu_topup", null, "BTN_DEPOSIT")],
+        [makeBtn("Back to Home", "callback_data", "menu_home", null, "BTN_HOME")]
       ]
     });
     return;
@@ -427,7 +427,7 @@ async function handleCallback(cb, env) {
 
     if (!order) {
       await editMsg("⚠️ Key record not found.", {
-        inline_keyboard: [[makeBtn("🔙 Back to List", "callback_data", `menu_profile_p_${returnPage || 1}`)]]
+        inline_keyboard: [[makeBtn("Back to List", "callback_data", `menu_profile_p_${returnPage || 1}`)]]
       });
       return;
     }
@@ -496,8 +496,8 @@ async function handleCallback(cb, env) {
 
     await editMsg(finishMsg, {
       inline_keyboard: [
-        [{ text: "🔙 Back to Profile", callback_data: `menu_profile_p_${returnPage || 1}` }],
-        [{ text: "🏠 Main Menu", callback_data: "menu_home" }]
+        [makeBtn ("Back to Profile", "callback_data", "menu_profile_p_1", null, "BTN_PROFILE")],
+        [makeBtn("Main Menu", "callback_data", "menu_home", null, "BTN_HOME")]
       ]
     });
     return;
@@ -506,16 +506,25 @@ async function handleCallback(cb, env) {
   // Terms of Service
   if (data === "menu_terms") {
     const termsMsg = 
-      `${e("TERMS", "📜")} <b>Terms of Service & Rules</b>\n` +
+      `${e("TERMS", "📜")} <b>Terms of Service & Store Policies</b>\n` +
       `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
+      `Please read and understand our store policies before proceeding:\n\n` +
       `<blockquote>` +
-      `1. Do not include sensitive terms (VPN/Outline) in transaction notes.\n` +
-      `2. Keys are for individual use only; sharing is prohibited.\n` +
-      `3. Fake/modified payment receipts result in an instant ban.\n` +
-      `4. Contact customer support for connection or node assistance.` +
-      `</blockquote>`;
+      `1. <b>Strict No-Refund Policy:</b>\n` +
+      `• All wallet top-ups and key purchases are final. Refunds will NOT be issued under any circumstances.\n\n` +
+      `2. <b>Server Downtime & Support:</b>\n` +
+      `• In case of server interruption or protocol blockages, our team will investigate and restore the access nodes within <b>24 hours</b>.\n\n` +
+      `3. <b>Payment Note Instructions:</b>\n` +
+      `• Strictly do <b>NOT</b> write "VPN", "Key", "Outline", or store-related words in the transaction note/remark when transferring via KPay or AYAPay.\n` +
+      `• Any transaction violating this rule will be rejected immediately and balance will <b>NOT</b> be added.\n\n` +
+      `4. <b>Fraud Prevention & Permanent Ban:</b>\n` +
+      `• Submitting fake, altered, reused, or fraudulent transaction slips will lead to an immediate and permanent <b>Account & Telegram ID Ban</b> across all our bots and services.\n\n` +
+      `5. <b>Fair Usage:</b>\n` +
+      `• Purchased Outline keys are for single-device/personal use only. Reselling or public sharing is strictly prohibited.` +
+      `</blockquote>\n\n` +
+      `${e("WARNING", "⚠️")} <b>By using our bot and depositing funds, you fully agree to comply with all the terms above.</b>`;
     await editMsg(termsMsg, {
-      inline_keyboard: [[{ text: "🔙 Back to Home", callback_data: "menu_home" }]]
+      inline_keyboard: [[makeBtn("Main Menu", "callback_data", "menu_home", null, "BTN_HOME")]]
     });
     return;
   }
@@ -541,7 +550,7 @@ async function handleCallback(cb, env) {
       `• Examples: <code>2500</code>, <code>5000</code> or <code>20000</code>`;
 
     await editMsg(customPromptMsg, {
-      inline_keyboard: [[{ text: "🔙 Back to Amounts", callback_data: "menu_topup" }]]
+      inline_keyboard: [[ makeBtn("Deposit", "callback_data", "menu_topup", null, "BTN_DEPOSIT")]]
     });
     return;
   }
@@ -552,7 +561,7 @@ async function handleCallback(cb, env) {
     await env.DB.prepare("UPDATE users SET pending_topup_amount = ? WHERE telegram_id = ?").bind(amount, userId).run();
 
     await editMsg(MSG.getPaymentInfoMessage(amount), {
-      inline_keyboard: [[{ text: "🔙 Change Amount", callback_data: "menu_topup" }]]
+      inline_keyboard: [[ makeBtn("Change Amount", "callback_data", "menu_topup", null, "BTN_CUSTOM")]]
     });
     return;
   }
@@ -577,8 +586,8 @@ async function handleCallback(cb, env) {
         `Please top up your wallet balance to complete this purchase.`,
         {
           inline_keyboard: [
-            [{ text: "💳 Deposit Funds", callback_data: "menu_topup" }],
-            [{ text: "🔙 Back to Plans", callback_data: "menu_buy" }]
+            [ makeBtn("Deposit Fund", "callback_data", "menu_topup", null, "BTN_DEPOSIT")],
+            [ makeBtn("Back to Plans", "callback_data", "menu_buy", null, "BTN_SHOP")]
           ]
         }
       );
@@ -596,8 +605,8 @@ async function handleCallback(cb, env) {
         `We are currently out of stock for <b>[${category.toUpperCase()}]</b>. Admin has been notified to restock immediately.`,
         {
           inline_keyboard: [
-            [{ text: "🔙 Back to Plans", callback_data: "menu_buy" }],
-            [{ text: "💬 Ask Support", url: `https://t.me/${CONFIG.ADMIN_USERNAME}` }]
+            [ makeBtn("Back to Plans", "callback_data", "menu_buy", null, "BTN_SHOP")],
+            [ makeBtn("Contact Support", "url", `https://t.me/${CONFIG.ADMIN_USERNAME}`, null, "BTN_SUPPORT") ]
           ]
         }
       );
@@ -613,8 +622,8 @@ async function handleCallback(cb, env) {
 
     await editMsg(MSG.getKeyDeliveryMessage(category, price, keyItem.access_key), {
       inline_keyboard: [
-        [{ text: "👤 View in My Profile", callback_data: "menu_profile_p_1" }],
-        [{ text: "🏠 Main Menu", callback_data: "menu_home" }]
+        [makeBtn("View in Profile", "callback_data", "menu_profile_p_1", null, "BTN_PROFILE")],
+        [makeBtn("Back to Home", "callback_data", "menu_home", null, "BTN_HOME")]
       ]
     });
     return;
@@ -642,8 +651,8 @@ async function handleCallback(cb, env) {
           `<i>You can claim another test key in <b>${days} days and ${hours} hours</b>.</i>`,
           {
             inline_keyboard: [
-              [{ text: "🔑 View My Test Key", callback_data: "view_claimed_test_key" }],
-              [{ text: "🔙 Back to Home", callback_data: "menu_home" }]
+              [makeBtn("View My Test Key", "callback_data", "view_claimed_test_key", null, "BTN_KEY")],
+              [makeBtn("Back to Home", "callback_data", "menu_home", null, "BTN_HOME")]
             ]
           }
         );
@@ -653,8 +662,8 @@ async function handleCallback(cb, env) {
 
     await editMsg(MSG.getTestKeyInfoMessage(), {
       inline_keyboard: [
-        [{ text: "🎁 Claim Free Test Key", callback_data: "exec_claim_test_key" }],
-        [{ text: "🔙 Back to Home", callback_data: "menu_home" }]
+        [makeBtn("Claim Free Test Key", "callback_data", "exec_claim_test_key", null, "BTN_FREEBIES")],
+        [makeBtn("Back to Home", "callback_data", "menu_home", null, "BTN_HOME")]
       ]
     });
     return;
@@ -671,8 +680,8 @@ async function handleCallback(cb, env) {
         `${e("UNSTOCK", "😔")} <b>Out of Stock!</b>\nNo free test keys are currently available in the pool. Please check back soon.`,
         {
           inline_keyboard: [
-            [{ text: "🔙 Back to Home", callback_data: "menu_home" }],
-            [{ text: "💬 Ask Support", url: `https://t.me/${CONFIG.ADMIN_USERNAME}` }]
+            [makeBtn("Back to Home", "callback_data", "menu_home", null, "BTN_HOME")],
+            [makeBtn("Contact Support", "url", `https://t.me/${CONFIG.ADMIN_USERNAME}`, null, "BTN_SUPPORT")]
           ]
         }
       );
@@ -691,7 +700,7 @@ async function handleCallback(cb, env) {
       `<code>${testKeyItem.access_key}</code>\n\n` +
       `${e("UP", "👆")} <i>Tap the key to copy to clipboard.</i>`,
       {
-        inline_keyboard: [[{ text: "🔙 Back to Home", callback_data: "menu_home" }]]
+        inline_keyboard: [[makeBtn("Back to Home", "callback_data", "menu_home", null, "BTN_HOME")]]
       }
     );
     return;
@@ -706,7 +715,7 @@ async function handleCallback(cb, env) {
       `<code>${keyStr}</code>\n\n` +
       `${e("UP", "👆")} <i>Tap to copy to clipboard.</i>`,
       {
-        inline_keyboard: [[{ text: "🔙 Back to Home", callback_data: "menu_home" }]]
+        inline_keyboard: [[makeBtn("Back to Home", "callback_data", "menu_home", null, "BTN_HOME")]]
       }
     );
   }

@@ -1,5 +1,5 @@
 export const CONFIG = {
-  STORE_NAME: "Prime Outline Store",
+  STORE_NAME: "Outline Key Store",
   ADMIN_USERNAME: "JaiwaJG",
 
   // 📱 Payment Information
@@ -83,6 +83,7 @@ export const CONFIG = {
     BTN_SUPPORT: "6057677034543391682",
     BTN_APPROVE: "5260463209562776385",
     BTN_REJECT: "5974083768233760323",
+    BTN_KEY: "5330115548900501467",
   }
 };
 

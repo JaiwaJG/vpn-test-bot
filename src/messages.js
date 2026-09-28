@@ -31,6 +31,7 @@ export function getWelcomeMessage(firstName) {
     `${e("PROFILE", "👤")} <b>My Profile</b> — Balance, keys & order history\n` +
     `${e("TERMS", "📜")} <b>Terms</b> — Store rules & usage policies` +
     `</blockquote>\n\n` +
+    `<b>Channel: @jaiwateam</b>`+
     `<b>Select an option below to continue:</b>`
   );
 }
