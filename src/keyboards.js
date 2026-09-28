@@ -131,7 +131,7 @@ export function getStockRefreshKeyboard() {
 
 // Test Key Delivery & View Keyboard (Copy Button ပါဝင်သည်)
 export function getTestKeyActionKeyboard(accessKey) {
-  const safeKey = accessKey || "";
+  const safeKey = accessKey || "No-Key-Found";
   return {
     inline_keyboard: [
       [makeBtn("Copy Test Key", "copy_text", safeKey, "primary", "BTN_COPY")],
