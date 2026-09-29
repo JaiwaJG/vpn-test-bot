@@ -583,13 +583,16 @@ async function handleCallback(cb, env) {
       const totalSpent = Number(spentRow?.total_spent || 0);
 
       // ၂။ နောက်ဆုံးငွေဖြည့်ခဲ့သည့် အချိန်
-      let lastDepositText = user.last_topup_at || "No top-up yet";
+    // ၂။ နောက်ဆုံးငွေဖြည့်ခဲ့သည့် အချိန် (DB ထဲက မြန်မာစံတော်ချိန်ကို တိုက်ရိုက်ဖော်ပြခြင်း)
+      let lastDepositText = "No top-up yet";
       if (user.last_topup_at) {
-        try {
-          const d = new Date(user.last_topup_at);
-          lastDepositText = d.toLocaleString("en-GB", { timeZone: "Asia/Yangon" });
-        } catch (e) {
-          lastDepositText = String(user.last_topup_at);
+        // "2026-09-29 21:29:00" ပုံစံမှ "29/09/2026, 21:29:00" ပုံစံသို့ ပြောင်းလဲခြင်း
+        const parts = String(user.last_topup_at).split(" ");
+        if (parts.length === 2) {
+          const [y, m, d] = parts[0].split("-");
+          lastDepositText = `${d}/${m}/${y}, ${parts[1]}`;
+        } else {
+          lastDepositText = user.last_topup_at;
         }
       }
 

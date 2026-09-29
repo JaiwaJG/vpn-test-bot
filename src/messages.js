@@ -115,7 +115,7 @@ export function getChannelSaleMessage(buyerName, category, price, accessKey) {
     `${e("PROFILE", "👤")} <b>Customer:</b> ${maskName(buyerName)}\n` +
     `${e("STOCK", "📦")} <b>Package:</b> ${pkg.gb} (${pkg.days} Days)\n` +
     `${e("BALANCE", "💰")} <b>Amount Paid:</b> ${price.toLocaleString()} MMK\n` +
-    `${e("DATE", "📅")} <b>Delivered At:</b> ${formatMyanmarTime(new Date())}` +
+    `${e("DATE", "📅")} <b>Delivered At:</b> ${formatMyanmarTime(new Date())}\n` +
     `</blockquote>\n\n` +
     `${e("FLASH", "⚡️")} <i>Instant automated 24/7 delivery by Our Bot.</i>`
   );
