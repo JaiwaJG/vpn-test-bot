@@ -599,6 +599,8 @@ async function handleCallback(cb, env) {
         `<blockquote>` +
         `• ${e("PROFILE", "👤")} Account: <b>${cb.from.first_name || ""}</b>\n` +
         `• ${e("USER_ID", "🆔")} Telegram ID: <code>${user.telegram_id}</code>\n` +
+        `</blockquote>\n\n` +
+        `<blockquote>` +
         `• ${e("BALANCE", "💰")} Current Balance: <b>${balance.toLocaleString()} MMK</b>\n` +
         `• ${e("SHOP", "🛍")} Total Spent: <b>${totalSpent.toLocaleString()} MMK</b>\n` +
         `• ${e("DATE", "🕒")} Last Deposit: <i>${lastDepositText}</i>` +

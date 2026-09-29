@@ -49,7 +49,7 @@ export function getPackageListMessage(balance) {
   return (
     `${e("SHOP", "🛍")} <b>Available Outline VPN Packages</b>\n` +
     `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
-    `${e("BALANCE", "💰")} <b>Your Balance:</b> <code>${balance.toLocaleString()} MMK</code>\n\n` +
+    `${e("BALANCE", "💰")} <b>My Balance:</b> <code>${balance.toLocaleString()} MMK</code>\n\n` +
     `<blockquote>` +
     `${e("DOT", "🔹")} <b>50 GB Plan (30 Days)</b>\n` +
     `• Data: 50 GB | High-Speed Singapore\n` +
