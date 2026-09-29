@@ -583,7 +583,7 @@ async function handleCallback(cb, env) {
       const totalSpent = Number(spentRow?.total_spent || 0);
 
       // ၂။ နောက်ဆုံးငွေဖြည့်ခဲ့သည့် အချိန်
-      let lastDepositText = "No top-up yet";
+      let lastDepositText = user.last_topup_at || "No top-up yet";
       if (user.last_topup_at) {
         try {
           const d = new Date(user.last_topup_at);
