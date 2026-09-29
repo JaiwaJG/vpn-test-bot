@@ -866,7 +866,7 @@ async function handleCallback(cb, env) {
     await editMsg(MSG.getKeyDeliveryMessage(category, price, keyItem.access_key), {
       inline_keyboard: [
         [makeBtn("View in Profile", "callback_data", "menu_profile_p_1", null, "BTN_PROFILE")],
-        [makeBtn("Join Sales Proof", "url", `https://t.me/sales_proved`, null, "BTN_ANNOUNCE")],
+        [makeBtn("Join Sales Proof", "url", `https://t.me/sales_proved`, null, "primary", "BTN_ANNOUNCE")],
         [makeBtn("Back to Home", "callback_data", "menu_home", null, "BTN_HOME")]
       ]
     });
