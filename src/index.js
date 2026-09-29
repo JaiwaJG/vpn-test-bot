@@ -136,7 +136,7 @@ async function handleMessage(msg, env) {
 
       await tg(env, "sendMessage", {
         chat_id: chatId,
-        text: `${e("CLOCK", "⏳")} <b>Payment Slip Received!</b>\n\nAmount: <b>${currentAmt.toLocaleString()} MMK</b>\nOur team is verifying your payment. Your wallet balance will be credited within <b>5 Minutes to 24 Hours maximum</b> automatically once approved.\n\nHave A Great Day ${e("STAR", "✨" )}`,
+        text: `${e("DONE", "✅")} <b>Payment Slip Received!</b>\n\nAmount: <b>${currentAmt.toLocaleString()} MMK</b>\nOur team is verifying your payment. ${e("CLOCK", "⏳")} \nYour wallet balance will be credited within <b>5 Minutes to 24 Hours maximum</b> automatically once approved.\n\nHave A Great Day ${e("STAR", "✨" )}`,
         parse_mode: "HTML",
       });
 
@@ -576,13 +576,31 @@ async function handleCallback(cb, env) {
 
   // Balance
   if (data === "menu_balance") {
+    const spendRow = await env.DB.prepare(
+      "SELECT COALESCE(SUM(price), 0) as total_spent FROM orders WHERE user_id = ?"
+    ).bind(user.telegram_id).first();
+    const totalSpent = Number(spentRow?.total_spent || 0);
+
+    let lastDepositText ="No Deposit yet";
+    if (user.last_topup_at) {
+      try {
+        const d = new Date(user.last_topup_at);
+        lastDepositText = d.toLocaleString("en-GB", { timeZone: "Asia/Yangon" });
+      } catch (e) {
+        lastDepositText = user.last_topup_at;
+      }
+    }
     const balMsg = 
       `${e("BALANCE", "💵")} <b>Your Wallet Balance</b>\n` +
       `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
       `<blockquote>` +
       `• ${e("PROFILE", "👤")} Account: <b>${cb.from.first_name || ""}</b>\n` +
       `• ${e("USER_ID", "🆔")} Telegram ID: <code>${user.telegram_id}</code>\n` +
-      `• ${e("BALANCE", "💰")} Current Balance: <b>${balance.toLocaleString()} MMK</b>` +
+      `</blockquote>\n\n` +
+      `<blockquote>` +
+      `• ${e("BALANCE", "💰")} Current Balance: <b>${balance.toLocaleString()} MMK</b>\n` +
+      `• ${e("SHOP", "🛍")} Total Spent: <b>${totalSpent.toLocaleString()} MMK</b>\n` +
+      `• ${e("TIME", "⏰")} Last Deposit: <i>${lastDepositText}</i>\n` +
       `</blockquote>\n\n` +
       `<i>Need more credits? Tap Deposit to top up your wallet.</i> ${e("DOWN", "👇")}`;
     await editMsg(balMsg, {
@@ -797,7 +815,7 @@ async function handleCallback(cb, env) {
 
     if (balance < price) {
       await editMsg(
-        `${e("WARNING", "⚠️")} <b>Insufficient Wallet Balance!</b>\n` +
+        `${e("UNSTOCK", "😔")} <b>Insufficient Wallet Balance!</b>\n` +
         `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
         `• Plan Price: <b>${price.toLocaleString()} MMK</b>\n` +
         `• Your Balance: <b>${balance.toLocaleString()} MMK</b>\n\n` +
@@ -840,7 +858,7 @@ async function handleCallback(cb, env) {
     await editMsg(MSG.getKeyDeliveryMessage(category, price, keyItem.access_key), {
       inline_keyboard: [
         [makeBtn("View in Profile", "callback_data", "menu_profile_p_1", null, "BTN_PROFILE")],
-        [makeBtn("Join Sales Proof", "url", `https://https://t.me/sales_proved`, null, "BTN_ANNOUNCE")],
+        [makeBtn("Join Sales Proof", "url", `https://t.me/sales_proved`, null, "BTN_ANNOUNCE")],
         [makeBtn("Back to Home", "callback_data", "menu_home", null, "BTN_HOME")]
       ]
     });
