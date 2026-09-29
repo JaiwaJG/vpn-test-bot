@@ -574,43 +574,46 @@ async function handleCallback(cb, env) {
     return;
   }
 
-  // Balance
-  if (data === "menu_balance") {
-    const spendRow = await env.DB.prepare(
-      "SELECT COALESCE(SUM(price), 0) as total_spent FROM orders WHERE user_id = ?"
-    ).bind(user.telegram_id).first();
-    const totalSpent = Number(spentRow?.total_spent || 0);
+    // Balance
+    if (data === "menu_balance") {
+      // ၁။ User ဝယ်ယူခဲ့သမျှ စုစုပေါင်းကုန်ကျငွေကို တွက်ထုတ်ခြင်း
+      const spentRow = await env.DB.prepare(
+        "SELECT COALESCE(SUM(price), 0) as total_spent FROM orders WHERE user_id = ?"
+      ).bind(user.telegram_id).first();
+      const totalSpent = Number(spentRow?.total_spent || 0);
 
-    let lastDepositText ="No Deposit yet";
-    if (user.last_topup_at) {
-      try {
-        const d = new Date(user.last_topup_at);
-        lastDepositText = d.toLocaleString("en-GB", { timeZone: "Asia/Yangon" });
-      } catch (e) {
-        lastDepositText = user.last_topup_at;
+      // ၂။ နောက်ဆုံးငွေဖြည့်ခဲ့သည့် အချိန်
+      let lastDepositText = "No top-up yet";
+      if (user.last_topup_at) {
+        try {
+          const d = new Date(user.last_topup_at);
+          lastDepositText = d.toLocaleString("en-GB", { timeZone: "Asia/Yangon" });
+        } catch (e) {
+          lastDepositText = String(user.last_topup_at);
+        }
       }
+
+      const balMsg = 
+        `${e("BALANCE", "💳")} <b>My Wallet Balance</b>\n` +
+        `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
+        `<blockquote>` +
+        `• ${e("PROFILE", "👤")} Account: <b>${cb.from.first_name || ""}</b>\n` +
+        `• ${e("USER_ID", "🆔")} Telegram ID: <code>${user.telegram_id}</code>\n` +
+        `• ${e("BALANCE", "💰")} Current Balance: <b>${balance.toLocaleString()} MMK</b>\n` +
+        `• ${e("SHOP", "🛍")} Total Spent: <b>${totalSpent.toLocaleString()} MMK</b>\n` +
+        `• ${e("DATE", "🕒")} Last Deposit: <i>${lastDepositText}</i>` +
+        `</blockquote>\n\n` +
+        `<i>Need more credits? Tap Deposit to top up your wallet.</i> ${e("DOWN", "🔻")}`;
+
+      await editMsg(balMsg, {
+        inline_keyboard: [
+          [makeBtn("Deposit", "callback_data", "menu_topup", null, "BTN_DEPOSIT")],
+          [makeBtn("Back to Home", "callback_data", "menu_home", null, "BTN_HOME")]
+        ]
+      });
+      return;
     }
-    const balMsg = 
-      `${e("BALANCE", "💵")} <b>Your Wallet Balance</b>\n` +
-      `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
-      `<blockquote>` +
-      `• ${e("PROFILE", "👤")} Account: <b>${cb.from.first_name || ""}</b>\n` +
-      `• ${e("USER_ID", "🆔")} Telegram ID: <code>${user.telegram_id}</code>\n` +
-      `</blockquote>\n\n` +
-      `<blockquote>` +
-      `• ${e("BALANCE", "💰")} Current Balance: <b>${balance.toLocaleString()} MMK</b>\n` +
-      `• ${e("SHOP", "🛍")} Total Spent: <b>${totalSpent.toLocaleString()} MMK</b>\n` +
-      `• ${e("TIME", "⏰")} Last Deposit: <i>${lastDepositText}</i>\n` +
-      `</blockquote>\n\n` +
-      `<i>Need more credits? Tap Deposit to top up your wallet.</i> ${e("DOWN", "👇")}`;
-    await editMsg(balMsg, {
-      inline_keyboard: [
-        [makeBtn("Deposit", "callback_data", "menu_topup", null, "BTN_DEPOSIT")],
-        [makeBtn("Back to Home", "callback_data", "menu_home", null, "BTN_HOME")]
-      ]
-    });
-    return;
-  }
+
 
   // Profile Orders
   if (data.startsWith("menu_profile_p_")) {
