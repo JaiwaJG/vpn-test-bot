@@ -273,7 +273,7 @@ async function handleMessage(msg, env) {
 
       // DB တွင် Balance အတိုး/အလျော့ ပြုလုပ်ခြင်း
       const sql = isAdd 
-        ? "UPDATE users SET balance = balance + ? WHERE telegram_id = ?"
+        ? "UPDATE users SET balance = balance + ?, last_topup_at = datetime('now', '+6 hours', '+30 minutes') WHERE telegram_id = ?"
         : "UPDATE users SET balance = balance - ? WHERE telegram_id = ?";
 
       await env.DB.prepare(sql).bind(amount, targetUser.telegram_id).run();
@@ -498,7 +498,7 @@ async function handleCallback(cb, env) {
       const amount = Number(amountStr);
 
       await env.DB.batch([
-        env.DB.prepare("UPDATE users SET balance = balance + ? WHERE telegram_id = ?").bind(amount, targetUserId),
+        env.DB.prepare("UPDATE users SET balance = balance + ?, last_topup_at = datetime('now', '+6 hours', '+30 minutes') WHERE telegram_id = ?").bind(amount, targetUserId),
         env.DB.prepare("UPDATE topup_requests SET status = 'approved' WHERE id = ?").bind(reqId)
       ]);
 
@@ -868,19 +868,50 @@ async function handleCallback(cb, env) {
       ]
     });
 
+    // 📢 ၁။ Sales Proof Channel သို့ အရောင်းပြေစာ ပို့ခြင်း
     const salesChannelId = String(env.SALES_CHANNEL_ID || "").trim();
     if (salesChannelId) {
       try {
+        const buyerName = cb.from?.first_name || "Customer";
+        const saleMsg = MSG.getChannelSaleMessage(buyerName, category, price, keyItem.access_key);
         await tg(env, "sendMessage", {
           chat_id: salesChannelId,
-          text: MSG.getChannelSaleMessage(cb.from.first_name, category, price, keyItem.access_key),
+          text: saleMsg,
           parse_mode: "HTML",
           reply_markup: KB.getSalesChannelKeyboard()
         });
       } catch (err) {
-        console.error("Sales Channel notification failed:", err);
+        console.error("Sales Channel Send Catch Error:", err.message || err);
       }
     }
+
+    // ⚠️ ၂။ Stock Group သို့ လက်ကျန်သတိပေး Noti ပို့ခြင်း (လက်ကျန် ၃ ခုနှင့် အောက်ဆိုလျှင်)
+    const stockGroupId = String(env.STOCK_GROUP_ID || "").trim();
+    if (stockGroupId) {
+      try {
+        const countRow = await env.DB.prepare(
+          "SELECT COUNT(*) as count FROM keys WHERE category = ?"
+        ).bind(category).first();
+        
+        const remainingStock = Number(countRow?.count || 0);
+
+        if (remainingStock <= 3) {
+          const alertTitle = remainingStock === 0 ? `${e("ALARM", "🚨")} <b>[OUT OF STOCK ALERT]</b>` : `${e("WARNING", "⚠️")} <b>[LOW STOCK ALERT]</b>`;
+          await tg(env, "sendMessage", {
+            chat_id: stockGroupId,
+            text: `<b>${alertTitle}</b>\n` +
+                  `<b>━━━━━━━━━━━━━━━━━━━━</b>\n` +
+                  `${e("STOCK", "📦")} <b>Package:</b> ${category.toUpperCase()}\n` +
+                  `${e("STATUS", "📊")} <b>Remaining Stock:</b> <b>${remainingStock} keys left!</b>\n\n` +
+                  `<i>Please restock quickly using /add_${category}</i>`,
+            parse_mode: "HTML"
+          });
+        }
+      } catch (stockErr) {
+        console.error("Stock Group Alert Error:", stockErr.message || stockErr);
+      }
+    }
+
     return;
   }
 
