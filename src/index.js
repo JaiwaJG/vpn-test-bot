@@ -136,7 +136,7 @@ async function handleMessage(msg, env) {
 
       await tg(env, "sendMessage", {
         chat_id: chatId,
-        text: `${e("CLOCK", "⏳")} <b>Payment Slip Received!</b>\n\nAmount: <b>${currentAmt.toLocaleString()} MMK</b>\nOur team is verifying your payment. Your wallet balance will be credited automatically once approved.\n\nHave A Great Day ${e("STAR", "✨" )}`,
+        text: `${e("CLOCK", "⏳")} <b>Payment Slip Received!</b>\n\nAmount: <b>${currentAmt.toLocaleString()} MMK</b>\nOur team is verifying your payment. Your wallet balance will be credited within <b>5 Minutes to 24 Hours maximum</b> automatically once approved.\n\nHave A Great Day ${e("STAR", "✨" )}`,
         parse_mode: "HTML",
       });
 
