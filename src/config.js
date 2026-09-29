@@ -30,7 +30,8 @@ export const CONFIG = {
   // 🌟 Premium / Custom Telegram Emoji IDs (@getidsbot ဖြင့် ရယူနိုင်သည်)
   EMOJIS: {
     // Brand & UI Icons
-    CROWN: "6059615271679696088",         // e.g. "5368324170671202287"
+    CROWN: "6059615271679696088",
+    CHANNEL: "5839394435644788150",         // e.g. "5368324170671202287"
     FIRE: "5289722755871162900",
     VERIFIED: "5289722755871162900",
     USER_ID: "6309581148536183273",

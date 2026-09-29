@@ -39,7 +39,7 @@ export function getWelcomeMessage(firstName) {
     `${e("PROFILE", "👤")} <b>My Profile</b> — Balance, keys & order history\n` +
     `${e("TERMS", "📜")} <b>Terms</b> — Store rules & usage policies` +
     `</blockquote>\n\n` +
-    `<b>Channel: @jaiwateam</b>\n\n` +
+    `${e("CROWN", "👑")} <b>Channel: @jaiwateam</b>\n\n` +
     `<b>Select an option below to continue.</b>`
   );
 }
@@ -53,17 +53,17 @@ export function getPackageListMessage(balance) {
     `<blockquote>` +
     `${e("DOT", "🔹")} <b>50 GB Plan (30 Days)</b>\n` +
     `• Data: 50 GB | High-Speed Singapore\n` +
-    `• Price: <b>2,500 MMK</b>\n\n` +
+    `• Price: <b>2,500 MMK</b>\n` +
     `</blockquote>\n\n` +
     `<blockquote>` +
     `${e("DOT", "🔹")} <b>100 GB Plan (35 Days)</b>\n` +
     `• Data: 100 GB | High-Speed Singapore\n` +
-    `• Price: <b>4,500 MMK</b>\n\n` +
+    `• Price: <b>4,500 MMK</b> (Most Popular)\n` +
     `</blockquote>\n\n` +
     `<blockquote>` +
     `${e("DOT", "🔹")} <b>250 GB Plan (75 Days)</b>\n` +
     `• Data: 250 GB | High-Speed Singapore\n` +
-    `• Price: <b>10,500 MMK</b> (Most Popular)` +
+    `• Price: <b>10,500 MMK</b> (Heavy User)\n` +
     `</blockquote>\n\n` +
     `${e("FLASH", "⚡️")} <i>Choose a package below for automated instant key delivery:</i>`
   );

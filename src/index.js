@@ -213,6 +213,113 @@ async function handleMessage(msg, env) {
     }
   }
 
+
+      // 💰 Manual Balance Management (/addbal & /subbal)
+    if (text.startsWith("/addbal") || text.startsWith("/subbal")) {
+      const parts = text.split(/\s+/);
+      const cmd = parts[0].toLowerCase();
+      const targetInput = parts[1]; // Telegram ID သို့မဟုတ် @username
+      const amount = parseInt(parts[2], 10);
+
+      // Argument စစ်ဆေးခြင်း
+      if (!targetInput || isNaN(amount) || amount <= 0) {
+        await tg(env, "sendMessage", {
+          chat_id: chatId,
+          text: `${e("WARNING", "⚠️")} <b>Invalid Command Format!</b>\n\n` +
+                `<b>Usage:</b>\n` +
+                `• <code>/addbal &lt;id or @username&gt; &lt;amount&gt;</code>\n` +
+                `• <code>/subbal &lt;id or @username&gt; &lt;amount&gt;</code>\n\n` +
+                `<b>Examples:</b>\n` +
+                `• <code>/addbal 7271969259 5000</code>\n` +
+                `• <code>/subbal @username 2500</code>`,
+          parse_mode: "HTML"
+        });
+        return;
+      }
+
+      // User ရှာဖွေခြင်း (ID ဖြင့် သို့မဟုတ် Username ဖြင့်)
+      let targetUser = null;
+      if (targetInput.startsWith("@")) {
+        const cleanUsername = targetInput.replace("@", "").trim();
+        targetUser = await env.DB.prepare(
+          "SELECT * FROM users WHERE LOWER(username) = LOWER(?)"
+        ).bind(cleanUsername).first();
+      } else {
+        targetUser = await env.DB.prepare(
+          "SELECT * FROM users WHERE telegram_id = ?"
+        ).bind(targetInput.trim()).first();
+      }
+
+      if (!targetUser) {
+        await tg(env, "sendMessage", {
+          chat_id: chatId,
+          text: `${e("WARNING", "❌")} <b>User Not Found:</b> <code>${targetInput}</code>\n<i>The user must have started the bot at least once.</i>`,
+          parse_mode: "HTML"
+        });
+        return;
+      }
+
+      const isAdd = cmd.startsWith("/addbal");
+
+      // Balance နှုတ်ယူချိန်တွင် လက်ကျန်ထက် ပိုနှုတ်မိခြင်းမှ ကာကွယ်ရန်
+      if (!isAdd && targetUser.balance < amount) {
+        await tg(env, "sendMessage", {
+          chat_id: chatId,
+          text: `${e("WARNING", "⚠️")} <b>Insufficient Balance!</b>\nUser's current balance is only <b>${Number(targetUser.balance).toLocaleString()} MMK</b>. Cannot deduct <b>${amount.toLocaleString()} MMK</b>.`,
+          parse_mode: "HTML"
+        });
+        return;
+      }
+
+      // DB တွင် Balance အတိုး/အလျော့ ပြုလုပ်ခြင်း
+      const sql = isAdd 
+        ? "UPDATE users SET balance = balance + ? WHERE telegram_id = ?"
+        : "UPDATE users SET balance = balance - ? WHERE telegram_id = ?";
+
+      await env.DB.prepare(sql).bind(amount, targetUser.telegram_id).run();
+
+      const updatedUser = await env.DB.prepare("SELECT balance FROM users WHERE telegram_id = ?").bind(targetUser.telegram_id).first();
+      const newBal = Number(updatedUser?.balance || 0);
+
+      // Payment Group သို့ Admin အတည်ပြုချက်စာ ပို့ခြင်း
+      const actionText = isAdd ? "Credited (+)" : "Deducted (-)";
+      const actionEmoji = isAdd ? e("SUCCESS", "✅") : e("WARNING", "🔻");
+
+      await tg(env, "sendMessage", {
+        chat_id: chatId,
+        text: `${actionEmoji} <b>Balance Updated Successfully!</b>\n` +
+              `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
+              `<blockquote>` +
+              `• <b>User:</b> ${targetUser.first_name || ""} (<code>${targetUser.telegram_id}</code>)\n` +
+              `• <b>Username:</b> @${targetUser.username || "None"}\n` +
+              `• <b>Action:</b> ${actionText} <b>${amount.toLocaleString()} MMK</b>\n` +
+              `• <b>New Balance:</b> <b>${newBal.toLocaleString()} MMK</b>` +
+              `</blockquote>`,
+        parse_mode: "HTML"
+      });
+
+      // User ထံသို့ Noti သီးသန့် အလိုအလျောက် ပို့ပေးခြင်း
+      try {
+        const userNotice = isAdd
+          ? `${e("SUCCESS", "🎉")} <b>Balance Credited!</b>\n<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
+            `An admin has added <b>+${amount.toLocaleString()} MMK</b> to your wallet.\n\n` +
+            `${e("BALANCE", "💰")} <b>Current Balance:</b> <code>${newBal.toLocaleString()} MMK</code>`
+          : `${e("WARNING", "⚠️")} <b>Balance Deducted!</b>\n<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
+            `An admin has deducted <b>-${amount.toLocaleString()} MMK</b> from your wallet.\n\n` +
+            `${e("BALANCE", "💰")} <b>Current Balance:</b> <code>${newBal.toLocaleString()} MMK</code>`;
+
+        await tg(env, "sendMessage", {
+          chat_id: targetUser.telegram_id,
+          text: userNotice,
+          parse_mode: "HTML"
+        });
+      } catch (err) {
+        // User က Bot ကို Block ထားပါက Error မတက်ဘဲ ကျော်သွားမည်
+      }
+
+      return;
+    }
+
       // 📢 Broadcast Announcement to All Users
     if (text.startsWith("/broadcast")) {
       const broadcastMsg = text.replace(/^\/broadcast(@\w+)?/, "").trim();
@@ -733,6 +840,7 @@ async function handleCallback(cb, env) {
     await editMsg(MSG.getKeyDeliveryMessage(category, price, keyItem.access_key), {
       inline_keyboard: [
         [makeBtn("View in Profile", "callback_data", "menu_profile_p_1", null, "BTN_PROFILE")],
+        [makeBtn("Join Sales Proof", "url", `https://https://t.me/sales_proved`, null, "BTN_ANNOUNCE")],
         [makeBtn("Back to Home", "callback_data", "menu_home", null, "BTN_HOME")]
       ]
     });
