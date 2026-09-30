@@ -40,9 +40,9 @@ export function getBuyPackagesKeyboard() {
 export function getTopupKeyboard() {
   return {
     inline_keyboard: [
-      [makeBtn("2,500 MMK (50 GB Plan)", "callback_data", "topup_amt_2500" , "success", "BTN_TOPUP")],
-      [makeBtn("4,500 MMK (100 GB Plan)", "callback_data", "topup_amt_4500", "success", "BTN_TOPUP")],
-      [makeBtn("10,500 MMK (250 GB Plan)", "callback_data", "topup_amt_10500", "success", "BTN_TOPUP")],
+      [makeBtn("2,500 MMK (50 GB Plan)", "callback_data", "topup_amt_2500" , "success", "BTN_DEPOSIT")],
+      [makeBtn("4,500 MMK (100 GB Plan)", "callback_data", "topup_amt_4500", "success", "BTN_DEPOSIT")],
+      [makeBtn("10,500 MMK (250 GB Plan)", "callback_data", "topup_amt_10500", "success", "BTN_DEPOSIT")],
       [makeBtn("Custom Deposit Amount", "callback_data", "topup_custom", "primary", "BTN_CUSTOM")],
       [makeBtn("Back to Home", "callback_data", "menu_home", null, "BTN_HOME")]
     ]
@@ -81,7 +81,7 @@ export function getKeyDetailKeyboard(orderId, page, accessKey) {
       // ပုံထဲကလို Tap နှိပ်ရုံဖြင့် Key တန်း copy ယူမည့် Primary Color ခလုတ်
       [makeBtn("Copy Key", "copy_text", safeKey, "primary", "BTN_COPY")],
       // ပုံထဲကလို Danger Color (အနီရောင်) Delete ခလုတ်
-      [makeBtn("Delete", "callback_data", `del_conf_${orderId}_${page}`, "danger", "BTN_DELETE")],
+      [makeBtn("Delete Key", "callback_data", `del_conf_${orderId}_${page}`, "danger", "BTN_DELETE")],
       [makeBtn("Back to List", "callback_data", `menu_profile_p_${page}`, null, "BTN_BACK")],
       [makeBtn("Main Menu", "callback_data", "menu_home", null, "BTN_HOME")]
     ]
@@ -92,7 +92,7 @@ export function getKeyDetailKeyboard(orderId, page, accessKey) {
 export function getDeleteConfirmKeyboard(orderId, page) {
   return {
     inline_keyboard: [
-      [makeBtn("Yes, Delete Permanently", "callback_data", `del_exec_${orderId}_${page}`, "danger", "BTN_DELETE")],
+      [makeBtn("Yes, Delete Permanently", "callback_data", `del_exec_${orderId}_${page}`, "danger")],
       [makeBtn("Cancel", "callback_data", `view_ord_${orderId}_${page}`)]
     ]
   };

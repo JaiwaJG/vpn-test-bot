@@ -101,7 +101,7 @@ export function getKeyDeliveryMessage(category, price, accessKey) {
     `• ${e("DATE", "📅")} <b>Delivered At:</b> ${formatMyanmarTime(new Date())}` +
     `</blockquote>\n\n` +
     `${e("KEY", "🔑")} <b>Your Outline VPN Key:</b>\n` +
-    `<blockquote>\n` +
+    `<blockquote>` +
     `<code>${accessKey}</code>\n` +
     `</blockquote>\n\n` +
     `${e("UP", "👆")} <i>Tap the key to copy. Your purchased keys are always viewable in ${e("PROFILE", "👤")} <b>My Profile</b>.</i>`

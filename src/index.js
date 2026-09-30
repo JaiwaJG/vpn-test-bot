@@ -800,7 +800,7 @@ async function handleCallback(cb, env) {
       `• ${e("STATUS", "📊")} <b>Status:</b> ${statusText}` +
       `</blockquote>\n\n` +
       `${e("KEY", "🔑")} <b>Outline Access Key:</b>\n` +
-      `<blockquote>\n` +
+      `<blockquote>` +
       `<code>${order.access_key}</code>\n` +
       `</blockquote>\n\n` +
       `${e("DOWN", "👇")} <i>Tap the copy button below or tap the code to copy ${e("KEY", "🔑")} Key.</i>`;
