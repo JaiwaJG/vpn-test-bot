@@ -1081,7 +1081,7 @@ async function handleCallback(cb, env) {
       `${e("SUCCESS", "🎉")} <b>Your Free Test Key is Ready!</b>\n` +
       `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
       `${e("KEY", "🔑")} <b>Access Key:</b>\n` +
-      `<blockquote>\n` +
+      `<blockquote>` +
       `<code>${testKeyItem.access_key}</code>\n` +
       `</blockquote>\n\n` +
       `${e("DOWN", "👇")} <i>Tap the copy button below or tap the code to copy ${e("KEY", "🔑")} Test Key.</i>`,
@@ -1094,9 +1094,9 @@ async function handleCallback(cb, env) {
   if (data === "view_claimed_test_key") {
     const keyStr = user.current_test_key || "Key record not found.";
     await editMsg(
-      `${e("KEY", "🔑")} <b>Your Active Free Test Key</b>\n` +
+      `${e("KEY", "🔑")} <b>My Active Free Test Key</b>\n` +
       `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
-      `<blockquote>\n` +
+      `<blockquote>` +
       `<code>${keyStr}</code>\n` +
       `</blockquote>\n\n` +
       `${e("DOWN", "👇")} <i>Tap the copy button below or tap the code to copy ${e("KEY", "🔑")} Test Key.</i>`,
