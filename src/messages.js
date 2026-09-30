@@ -78,13 +78,14 @@ export function getPaymentInfoMessage(amount) {
     `Please transfer the exact amount to one of our verified accounts:\n\n` +
     `<blockquote>` +
     `${e("KPAY", "📱")} <b>KBZPay:</b> <code>${CONFIG.PAYMENT.PHONE}</code> <b>${CONFIG.PAYMENT.NAME}</b>\n\n` +
-    `${e("AYAPAY", "📱")} <b>AYAPay:</b> <code>${CONFIG.PAYMENT.PHONE}</code> <b>${CONFIG.PAYMENT.NAME}</b>\n` +
+    `${e("AYAPAY", "📱")} <b>AYAPay:</b> <code>${CONFIG.PAYMENT.PHONE}</code> <b>${CONFIG.PAYMENT.NAME}</b>\n\n` +
+    `${e("UABPAY", "📱")} <b>UABPay:</b> <code>${CONFIG.PAYMENT.PHONE}</code> <b>${CONFIG.PAYMENT.NAME}</b>\n` +
     `</blockquote>\n\n` +
     `${e("WARNING", "⚠️")} <b>Important Transfer Rules:</b>\n` +
     `• Do <b>NOT</b> write VPN, Outline, or Store names in the transaction note.\n` +
-    `• Send the transfer <b>Screenshot (Photo)</b> directly into this chat.\n` +
+    `• Send the transfer <b>Screenshot/Slip</b> directly into this chat.\n` +
     `• Fraudulent/fake slips will result in an immediate permanent ban.\n\n` +
-    `${e("SLIP", "🧾")} <i>Send your transaction screenshot now:</i>`
+    `${e("SLIP", "🧾")} <i>Send your transaction screenshot/slip now:</i>`
   );
 }
 
@@ -100,8 +101,11 @@ export function getKeyDeliveryMessage(category, price, accessKey) {
     `• ${e("DATE", "📅")} <b>Delivered At:</b> ${formatMyanmarTime(new Date())}` +
     `</blockquote>\n\n` +
     `${e("KEY", "🔑")} <b>Your Outline VPN Key:</b>\n` +
-    `<code>${accessKey}</code>\n\n` +
+    `<blockquote>\n` +
+    `<code>${accessKey}</code>\n` +
+    `</blockquote>\n\n` +
     `${e("UP", "👆")} <i>Tap the key to copy. Your purchased keys are always viewable in ${e("PROFILE", "👤")} <b>My Profile</b>.</i>`
+
   );
 }
 
@@ -134,5 +138,36 @@ export function getTestKeyInfoMessage() {
     `• The claimed key is saved in your Profile.` +
     `</blockquote>\n\n` +
     `Tap the button below to claim your key now. ${e("DOWN", "👇")}`
+  );
+}
+
+// Expiration Reminder Notification (English - Buy New Key Only)
+export function getExpiryReminderMessage(buyerName, category, accessKey, daysLeft = 2) {
+  return (
+    `${e("WARNING", "⚠️")} <b>Outline Key Expiry Reminder</b>\n` +
+    `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
+    `Hello <b>${buyerName}</b>,\n` +
+    `Your Outline VPN key for <b>${category.toUpperCase()}</b> will expire in <b>${daysLeft} days</b>.\n\n` +
+    `<blockquote>` +
+    `• <b>Plan:</b> ${category.toUpperCase()}\n` +
+    `• <b>Status:</b> Expiring Soon\n` +
+    `• <b>Key:</b> <code>${accessKey}</code>` +
+    `</blockquote>\n\n` +
+    `<i>To maintain continuous VPN access, please purchase a new key before your current one expires.</i>`
+  );
+}
+
+// Test Key Expired & Ready to Claim Again Notification
+export function getTestKeyExpiredMessage(buyerName) {
+  return (
+    `${e("FREEBIES", "🎁")} <b>Trial Period Ended</b>\n` +
+    `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
+    `Hello <b>${buyerName}</b>${e("STAR", "✨")},\n` +
+    `Your Outline VPN <b>Free Trial Key</b> has expired and has been automatically removed.\n\n` +
+    `<blockquote>` +
+    `• <b>Status:</b> Expired & Cleared\n` +
+    `• <b>Action:</b> You are now eligible to claim a new key or upgrade to a Private Key Plan.` +
+    `</blockquote>\n\n` +
+    `<i>Tap the button below to get your new Free Trial Key.</i>`
   );
 }

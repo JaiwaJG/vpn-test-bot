@@ -20,6 +20,99 @@ export default {
 
     return new Response("OK");
   },
+// ⏰ Cloudflare Cron Trigger (Dynamic Expiry Alarm + Auto Clear Test Keys)
+  async scheduled(event, env, ctx) {
+    try {
+      const now = new Date();
+
+      // --- အပိုင်း ၁။ သက်တမ်းကုန်သွားသော TEST KEY များကို အလိုအလျောက် ဖျက်ပြီး Noti ပို့ခြင်း ---
+      const expiredTests = await env.DB.prepare(`
+        SELECT orders.*, users.first_name 
+        FROM orders 
+        JOIN users ON orders.user_id = users.telegram_id
+        WHERE orders.category = 'test'
+      `).all();
+
+      for (const order of expiredTests.results || []) {
+        const pkgConfig = CONFIG.PACKAGES[order.category] || { days: 1 }; // test key ရက် (ဥပမာ ၁ ရက် သို့မဟုတ် သတ်မှတ်ရက်)
+        const totalDays = pkgConfig.days || 1;
+        
+        const createdAt = new Date(order.created_at);
+        const expireAt = new Date(createdAt.getTime() + totalDays * 24 * 60 * 60 * 1000);
+
+        // သတ်မှတ်ရက် ကျော်လွန်သွားပါက (Expired ဖြစ်သွားပါက)
+        if (now.getTime() >= expireAt.getTime()) {
+          // ၁။ Database ထဲမှ အဆိုပါ Test Key Order ကို အပြီးတိုင် ဖျက်ပစ်ခြင်း
+          await env.DB.prepare("DELETE FROM orders WHERE id = ?").bind(order.id).run();
+
+          // ၂။ User ဆီသို့ Test Key အသစ် ပြန်ယူနိုင်ပြီဖြစ်ကြောင်း Noti ပို့ခြင်း
+          const buyerName = order.first_name || "Customer";
+          const expiredMsg = MSG.getTestKeyExpiredMessage(buyerName);
+
+          await tg(env, "sendMessage", {
+            chat_id: order.user_id,
+            text: expiredMsg,
+            parse_mode: "HTML",
+            reply_markup: {
+              inline_keyboard: [
+                [makeBtn("Get New Test Key", "callback_data", "buy_test", null, "BTN_FREEBIES")],
+                [makeBtn("Buy Outline Key", "callback_data", "menu_buy", null, "BTN_SHOP")]
+              ]
+            }
+          });
+        }
+      }
+
+      // --- အပိုင်း ၂။ ပုံမှန် Key များ ၂ ရက်အလို သတိပေးချက် ပို့ခြင်း ---
+      const { results } = await env.DB.prepare(`
+        SELECT orders.*, users.first_name 
+        FROM orders 
+        JOIN users ON orders.user_id = users.telegram_id
+        WHERE orders.category != 'test' AND orders.reminded_exp = 0
+      `).all();
+
+      for (const order of results || []) {
+        const pkgConfig = CONFIG.PACKAGES[order.category];
+        const totalDays = pkgConfig?.days || 30;
+
+        const createdAt = new Date(order.created_at);
+        const expireAt = new Date(createdAt.getTime() + totalDays * 24 * 60 * 60 * 1000);
+
+        const diffMs = expireAt.getTime() - now.getTime();
+        const daysLeft = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+        if (daysLeft <= 2 && daysLeft > 0) {
+          const buyerName = order.first_name || "Customer";
+          const reminderText = MSG.getExpiryReminderMessage(
+            buyerName, 
+            order.category, 
+            order.access_key, 
+            daysLeft
+          );
+
+          await tg(env, "sendMessage", {
+            chat_id: order.user_id,
+            text: reminderText,
+            parse_mode: "HTML",
+            reply_markup: {
+              inline_keyboard: [
+                [makeBtn("Buy Outline Key", "callback_data", "menu_buy", null, "BTN_SHOP")]
+              ]
+            }
+          });
+
+          await env.DB.prepare(
+            "UPDATE orders SET reminded_exp = 1 WHERE id = ?"
+          ).bind(order.id).run();
+        }
+      }
+    } catch (err) {
+      console.error("Scheduled Error:", err.message || err);
+    }
+  }
+
+
+
 };
 
 // Telegram Request Helper
@@ -52,6 +145,15 @@ async function handleMessage(msg, env) {
 
   // --- 1. USER PRIVATE CHAT ---
   if (!chatId.startsWith("-")) {
+    try {
+      await tg(env, "deleteMessage", {
+        chat_id: msg.chat.id,
+        message_id: msg.message_id
+      });
+    } catch (delErr) {
+      console.error("Error deleting message:", delErr);
+    }
+
     const user = await getOrCreateUser(env, msg.from);
 
     if (user.is_banned === 1) {
@@ -577,13 +679,9 @@ async function handleCallback(cb, env) {
     // Balance
     if (data === "menu_balance") {
       // ၁။ User ဝယ်ယူခဲ့သမျှ စုစုပေါင်းကုန်ကျငွေကို တွက်ထုတ်ခြင်း
-      const spentRow = await env.DB.prepare(
-        "SELECT COALESCE(SUM(price), 0) as total_spent FROM orders WHERE user_id = ?"
-      ).bind(user.telegram_id).first();
-      const totalSpent = Number(spentRow?.total_spent || 0);
+      const totalSpent = Number(user.total_spent || 0);
 
       // ၂။ နောက်ဆုံးငွေဖြည့်ခဲ့သည့် အချိန်
-    // ၂။ နောက်ဆုံးငွေဖြည့်ခဲ့သည့် အချိန် (DB ထဲက မြန်မာစံတော်ချိန်ကို တိုက်ရိုက်ဖော်ပြခြင်း)
       let lastDepositText = "No top-up yet";
       if (user.last_topup_at) {
         // "2026-09-29 21:29:00" ပုံစံမှ "29/09/2026, 21:29:00" ပုံစံသို့ ပြောင်းလဲခြင်း
@@ -702,8 +800,10 @@ async function handleCallback(cb, env) {
       `• ${e("STATUS", "📊")} <b>Status:</b> ${statusText}` +
       `</blockquote>\n\n` +
       `${e("KEY", "🔑")} <b>Outline Access Key:</b>\n` +
-      `<code>${order.access_key}</code>\n\n` +
-      `${e("UP", "👆")} <i>Tap the code above to copy to clipboard.</i>`;
+      `<blockquote>\n` +
+      `<code>${order.access_key}</code>\n` +
+      `</blockquote>\n\n` +
+      `${e("DOWN", "👇")} <i>Tap the copy button below or tap the code to copy ${e("KEY", "🔑")} Key.</i>`;
 
     await editMsg(detailMsg, KB.getKeyDetailKeyboard(order.id, returnPage, order.access_key));
     return;
@@ -858,7 +958,7 @@ async function handleCallback(cb, env) {
     }
 
     await env.DB.batch([
-      env.DB.prepare("UPDATE users SET balance = balance - ?, total_orders = total_orders + 1 WHERE telegram_id = ?").bind(price, userId),
+      env.DB.prepare("UPDATE users SET balance = balance - ?, total_spent = total_spent + ?, total_orders = total_orders + 1 WHERE telegram_id = ?").bind(price, price, userId),
       env.DB.prepare("DELETE FROM keys WHERE id = ?").bind(keyItem.id),
       env.DB.prepare("INSERT INTO orders (user_id, category, access_key, price) VALUES (?, ?, ?, ?)").bind(userId, category, keyItem.access_key, price)
     ]);
@@ -866,7 +966,7 @@ async function handleCallback(cb, env) {
     await editMsg(MSG.getKeyDeliveryMessage(category, price, keyItem.access_key), {
       inline_keyboard: [
         [makeBtn("View in Profile", "callback_data", "menu_profile_p_1", null, "BTN_PROFILE")],
-        [makeBtn("Join Sales Proof", "url", `https://t.me/sales_proved`, null, "primary", "BTN_ANNOUNCE")],
+        [makeBtn("Join Sales Proof", "url", `https://t.me/sales_proved`, "danger", "BTN_ANNOUNCE")],
         [makeBtn("Back to Home", "callback_data", "menu_home", null, "BTN_HOME")]
       ]
     });
@@ -981,7 +1081,9 @@ async function handleCallback(cb, env) {
       `${e("SUCCESS", "🎉")} <b>Your Free Test Key is Ready!</b>\n` +
       `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
       `${e("KEY", "🔑")} <b>Access Key:</b>\n` +
-      `<code>${testKeyItem.access_key}</code>\n\n` +
+      `<blockquote>\n` +
+      `<code>${testKeyItem.access_key}</code>\n` +
+      `</blockquote>\n\n` +
       `${e("DOWN", "👇")} <i>Tap the copy button below or tap the code to copy ${e("KEY", "🔑")} Test Key.</i>`,
       KB.getTestKeyActionKeyboard(testKeyItem.access_key)
     );
@@ -994,7 +1096,9 @@ async function handleCallback(cb, env) {
     await editMsg(
       `${e("KEY", "🔑")} <b>Your Active Free Test Key</b>\n` +
       `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
-      `<code>${keyStr}</code>\n\n` +
+      `<blockquote>\n` +
+      `<code>${keyStr}</code>\n` +
+      `</blockquote>\n\n` +
       `${e("DOWN", "👇")} <i>Tap the copy button below or tap the code to copy ${e("KEY", "🔑")} Test Key.</i>`,
       KB.getTestKeyActionKeyboard(keyStr)
     );
