@@ -209,7 +209,7 @@ async function handleMessage(msg, env) {
         chat_id: chatId,
         text: MSG.getPaymentInfoMessage(amount),
         parse_mode: "HTML",
-        reply_markup: { inline_keyboard: [[{ text: "🔙 Change Amount", callback_data: "menu_topup" }]] }
+        reply_markup: { inline_keyboard: [[makeBtn("Change Amount", "callback_data", "topup_custom", "primary", "BTN_CUSTOM")]] }
       });
       return;
     }
