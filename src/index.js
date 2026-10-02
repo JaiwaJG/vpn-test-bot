@@ -110,9 +110,6 @@ export default {
       console.error("Scheduled Error:", err.message || err);
     }
   }
-
-
-
 };
 
 // Telegram Request Helper
@@ -159,7 +156,7 @@ async function handleMessage(msg, env) {
     if (user.is_banned === 1) {
       await tg(env, "sendMessage", {
         chat_id: chatId,
-        text: `${e("BAN", "🚫")} <b>Access Denied:</b> Your account has been permanently suspended due to violation of store rules.`,
+        text: `${e("BAN", "🚫")} <b>Access Denied:</b>\n<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n Your account has been permanently suspended due to violation of store rules.`,
         parse_mode: "HTML",
       });
       return;
@@ -196,7 +193,7 @@ async function handleMessage(msg, env) {
       if (isNaN(amount) || amount < CONFIG.PAYMENT.MIN_TOPUP) {
         await tg(env, "sendMessage", {
           chat_id: chatId,
-          text: `${e("WARNING", "⚠️")} <b>Invalid Amount!</b>\nMinimum deposit is <b>${CONFIG.PAYMENT.MIN_TOPUP.toLocaleString()} MMK</b>.\nPlease send digits only (e.g. <code>2500</code> or <code>5000</code>).`,
+          text: `${e("WARNING", "⚠️")} <b>Invalid Amount!</b>\n<b>━━━━━━━━━━━━━━━━━━━━</b>\n\nMinimum deposit is <b>${CONFIG.PAYMENT.MIN_TOPUP.toLocaleString()} MMK</b>.\nPlease send digits only (e.g. <code>2500</code> or <code>5000</code>).`,
           parse_mode: "HTML",
           reply_markup: { inline_keyboard: [[makeBtn("Back to Home", "callback_data", "menu_home")]] }
         });
@@ -266,44 +263,117 @@ async function handleMessage(msg, env) {
 
   // --- 2. PAYMENT AUDIT GROUP COMMANDS ---
   if (paymentGroupId && chatId === paymentGroupId) {
+  // Admin ဟုတ်မဟုတ် စစ်ဆေးခြင်း (Admin မဟုတ်ပါက မည်သည့် command မှ အလုပ်မလုပ်စေရန်)
+    const chatMember = await tg(env, "getChatMember", {
+      chat_id: chatId,
+      user_id: msg.from.id
+    });
+    const isAdmin = ["creator", "administrator"].includes(chatMember?.result?.status);
+    if (!isAdmin) return; // Member သာမန်လူဖြစ်ပါက လုံးဝ အလုပ်မလုပ်ဘဲ ကျော်သွားမည်
     if (text.startsWith("/ban")) {
       const targetId = text.split(" ")[1]?.trim();
       if (targetId) {
         await env.DB.prepare("UPDATE users SET is_banned = 1 WHERE telegram_id = ?").bind(targetId).run();
         await tg(env, "sendMessage", { chat_id: chatId, text: `${e("BAN", "🚫")} User <code>${targetId}</code> has been banned.`, parse_mode: "HTML" });
+        // User ထံ အသိပေးစာ ပို့ခြင်း
+        try {
+          await tg(env, "sendMessage", {
+            chat_id: targetId,
+            text: `${e("BAN", "🚫")} <b>Account Suspended</b>\n<b>━━━━━━━━━━━━━━━━━━━━</b>\nYour account has been suspended for violating our terms of service.`,
+            parse_mode: "HTML"
+          });
+        } catch (_) {}
       }
       return;
     }
+
     if (text.startsWith("/unban")) {
       const targetId = text.split(" ")[1]?.trim();
       if (targetId) {
         await env.DB.prepare("UPDATE users SET is_banned = 0 WHERE telegram_id = ?").bind(targetId).run();
         await tg(env, "sendMessage", { chat_id: chatId, text: `${e("DONE", "✅")} User <code>${targetId}</code> has been unbanned.`, parse_mode: "HTML" });
+        // User ထံ အသိပေးစာ ပို့ခြင်း
+        try {
+          await tg(env, "sendMessage", {
+            chat_id: targetId,
+            text: `${e("SUCCESS", "🎉")} <b>Account Re-activated</b>\n<b>━━━━━━━━━━━━━━━━━━━━</b>\nYour account suspension has been lifted. You can now use the bot again.`,
+            parse_mode: "HTML"
+          });
+        } catch (_) {}
       }
       return;
     }
+    
 
+    // --- ADVANCED STORE ANALYTICS & STATS ---
     if (text === "/stats" || text.startsWith("/stats@")) {
-      const totalReveneRes = await env.DB.prepare(
-        "SELECT SUM(price) as total_rev, COUNT(*) as total_orders FROM orders"
-      ).first();
-      const totalUsersRes = await env.DB.prepare(
-        "SELECT COUNT(*) as count FROM users"
+      // ၁။ All-time Sales & Revenue
+      const totalRevRes = await env.DB.prepare(
+        "SELECT SUM(price) as total_rev, COUNT(*) as total_orders FROM orders WHERE category != 'test'"
       ).first();
 
-      const totalRev = totalReveneRes?.total_rev || 0;
-      const totalSales = totalReveneRes?.total_orders || 0;
-      const totalUsers = totalUsersRes?.count || 0;
+      // ၂။ Today's Revenue & Orders (Myanmar Time +06:30)
+      const todayRes = await env.DB.prepare(
+        "SELECT SUM(price) as today_rev, COUNT(*) as today_orders FROM orders WHERE category != 'test' AND date(created_at, '+6 hours 30 minutes') = date('now', '+6 hours 30 minutes')"
+      ).first();
 
-      const statsMsg =
-        `${e("STATUS", "📊")} <b>Store Analytics & Revenue Report.</b>\n` +
+      // ၃။ User Statistics (Total, Active Key Users, Banned)
+      const totalUsersRes = await env.DB.prepare("SELECT COUNT(*) as count FROM users").first();
+      const bannedUsersRes = await env.DB.prepare("SELECT COUNT(*) as count FROM users WHERE is_banned = 1").first();
+      const activeKeysRes = await env.DB.prepare("SELECT COUNT(DISTINCT user_id) as count FROM orders WHERE expires_at > datetime('now')").first();
+
+      // ၄။ Live Key Stock Inventory
+      const stockRes = await env.DB.prepare(
+        "SELECT category, COUNT(*) as count FROM keys WHERE is_used = 0 GROUP BY category"
+      ).all();
+
+      const stockMap = { test: 0, "50gb": 0, "100gb": 0, "250gb": 0 };
+      if (stockRes?.results) {
+        for (const row of stockRes.results) {
+          if (stockMap.hasOwnProperty(row.category)) {
+            stockMap[row.category] = row.count;
+          }
+        }
+      }
+
+      // ၅။ Pending Top-up Slips Queue
+      const pendingAuditRes = await env.DB.prepare(
+        "SELECT COUNT(*) as count FROM users WHERE pending_topup_amount > 0"
+      ).first();
+
+      // Formatted Values
+      const fmtNum = (n) => Number(n || 0).toLocaleString();
+      const nowStr = new Date().toLocaleString("en-US", {
+        day: "numeric", month: "short", year: "numeric",
+        hour: "2-digit", minute: "2-digit", hour12: true,
+        timeZone: "Asia/Yangon"
+      });
+
+      const statsMsg = 
+        `${e("STATUS", "📊")} <b>Store Analytics & Executive Report</b>\n` +
         `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
-        `<blockquote>\n` +
-        `• ${e("BALANCE", "💰")} Total Revenue: <b>${totalRev.toLocaleString()} MMK</b>\n` +
-        `• ${e("STOCK", "📦")} Total Sales: <b>${totalSales}</b>\n` +
-        `• ${e("USERS", "👥")} Total Users: <b>${totalUsers}</b>\n\n` +
+        `${e("BALANCE", "💰")} <b>Revenue & Performance</b>\n` +
+        `<blockquote>` +
+        `• <b>Today:</b> ${fmtNum(todayRes?.today_rev)} MMK (${fmtNum(todayRes?.today_orders)} Orders)\n` +
+        `• <b>All-Time Revenue:</b> ${fmtNum(totalRevRes?.total_rev)} MMK\n` +
+        `• <b>Total Completed Sales:</b> ${fmtNum(totalRevRes?.total_orders)}` +
         `</blockquote>\n\n` +
-        `<b>Report Generated: ${MSG.formatMyanmarTime(new Date())}</b>`;
+        `${e("STOCK", "📦")} <b>Key Inventory (Stock)</b>\n` +
+        `<blockquote>` +
+        `• <b>50GB Keys:</b> ${fmtNum(stockMap["50gb"])} Available\n` +
+        `• <b>100GB Keys:</b> ${fmtNum(stockMap["100gb"])} Available\n` +
+        `• <b>250GB Keys:</b> ${fmtNum(stockMap["250gb"])} Available ${stockMap["250gb"] <= 3 ? "⚠️" : ""}\n` +
+        `• <b>Free Test Keys:</b> ${fmtNum(stockMap["test"])} Available` +
+        `</blockquote>\n\n` +
+        `${e("USERS", "👥")} <b>Users & Security</b>\n` +
+        `<blockquote>` +
+        `• <b>Total Registered:</b> ${fmtNum(totalUsersRes?.count)}\n` +
+        `• <b>Active Key Users:</b> ${fmtNum(activeKeysRes?.count)}\n` +
+        `• <b>Suspended/Banned:</b> ${fmtNum(bannedUsersRes?.count)}` +
+        `</blockquote>\n\n` +
+        `${e("CLOCK", "⏳")} <b>Audit Queue:</b> ${fmtNum(pendingAuditRes?.count)} Pending Slips\n` +
+        `<b>━━━━━━━━━━━━━━━━━━━━</b>\n` +
+        `${e("BTN_REFRESH", "🕒")} <i>Last updated: ${nowStr}</i>`;
 
       await tg(env, "sendMessage", {
         chat_id: chatId,
@@ -547,20 +617,69 @@ async function handleCallback(cb, env) {
   }
 
   // --- A. STOCK GROUP ACTIONS ---
-  if (stockGroupId && chatId === stockGroupId && data === "admin_refresh_stock") {
-    const counts = await env.DB.prepare("SELECT category, COUNT(*) as count FROM keys GROUP BY category").all();
-    let stockMap = { test: 0, "50gb": 0, "100gb": 0, "250gb": 0 };
-    if (counts.results) {
-      counts.results.forEach(r => { stockMap[r.category] = r.count; });
-    }
-    const stockMsg = 
-      `${e("STATUS", "📊")} <b>Real-Time Key Stock Status (Refreshed).</b>\n` +
-      `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
-      `• ${e("FREEBIES", "🎁")} Free Test Keys: <b>${stockMap.test}</b> items\n` +
-      `• ${e("DOT", "🔹")} 50 GB Keys: <b>${stockMap["50gb"]}</b> items\n` +
-      `• ${e("DOT", "🔹")} 100 GB Keys: <b>${stockMap["100gb"]}</b> items\n` +
-      `• ${e("DOT", "🔹")} 250 GB Keys: <b>${stockMap["250gb"]}</b> items\n\n` +
-      `<i>Last updated: ${MSG.formatMyanmarTime(new Date())}</i>`;
+   if (data === "admin_refresh_stats") {
+      // Check Admin
+      const chatMember = await tg(env, "getChatMember", {
+        chat_id: cb.message.chat.id,
+        user_id: user.telegram_id
+      });
+      if (!["creator", "administrator"].includes(chatMember?.result?.status)) {
+        await tg(env, "answerCallbackQuery", {
+          callback_query_id: cb.id,
+          text: "⚠️️ Admins only!",
+          show_alert: true
+        });
+        return;
+      }
+
+      // DB Queries
+      const totalRevRes = await env.DB.prepare("SELECT SUM(price) as total_rev, COUNT(*) as total_orders FROM orders WHERE category != 'test'").first();
+      const todayRes = await env.DB.prepare("SELECT SUM(price) as today_rev, COUNT(*) as today_orders FROM orders WHERE category != 'test' AND date(created_at, '+6 hours 30 minutes') = date('now', '+6 hours 30 minutes')").first();
+      const totalUsersRes = await env.DB.prepare("SELECT COUNT(*) as count FROM users").first();
+      const bannedUsersRes = await env.DB.prepare("SELECT COUNT(*) as count FROM users WHERE is_banned = 1").first();
+      const activeKeysRes = await env.DB.prepare("SELECT COUNT(DISTINCT user_id) as count FROM orders WHERE expires_at > datetime('now')").first();
+      
+      const stockRes = await env.DB.prepare("SELECT category, COUNT(*) as count FROM keys WHERE is_used = 0 GROUP BY category").all();
+      const stockMap = { test: 0, "50gb": 0, "100gb": 0, "250gb": 0 };
+      if (stockRes?.results) {
+        for (const row of stockRes.results) {
+          if (stockMap.hasOwnProperty(row.category)) stockMap[row.category] = row.count;
+        }
+      }
+      const pendingAuditRes = await env.DB.prepare("SELECT COUNT(*) as count FROM users WHERE pending_topup_amount > 0").first();
+
+      const fmtNum = (n) => Number(n || 0).toLocaleString();
+      const nowStr = new Date().toLocaleString("en-US", {
+        day: "numeric", month: "short", year: "numeric",
+        hour: "2-digit", minute: "2-digit", hour12: true,
+        timeZone: "Asia/Yangon"
+      });
+
+      const updatedText = 
+        `${e("STATUS", "📊")} <b>Store Analytics & Executive Report</b>\n` +
+        `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
+        `${e("BALANCE", "💰")} <b>Revenue & Performance</b>\n` +
+        `<blockquote>` +
+        `• <b>Today:</b> ${fmtNum(todayRes?.today_rev)} MMK (${fmtNum(todayRes?.today_orders)} Orders)\n` +
+        `• <b>All-Time Revenue:</b> ${fmtNum(totalRevRes?.total_rev)} MMK\n` +
+        `• <b>Total Completed Sales:</b> ${fmtNum(totalRevRes?.total_orders)}` +
+        `</blockquote>\n\n` +
+        `${e("STOCK", "📦")} <b>Key Inventory (Stock)</b>\n` +
+        `<blockquote>` +
+        `• <b>50GB Keys:</b> ${fmtNum(stockMap["50gb"])} Available\n` +
+        `• <b>100GB Keys:</b> ${fmtNum(stockMap["100gb"])} Available\n` +
+        `• <b>250GB Keys:</b> ${fmtNum(stockMap["250gb"])} Available ${stockMap["250gb"] <= 3 ? "⚠️️" : ""}\n` +
+        `• <b>Free Test Keys:</b> ${fmtNum(stockMap["test"])} Available` +
+        `</blockquote>\n\n` +
+        `${e("USERS", "👥")} <b>Users & Security</b>\n` +
+        `<blockquote>` +
+        `• <b>Total Registered:</b> ${fmtNum(totalUsersRes?.count)}\n` +
+        `• <b>Active Key Users:</b> ${fmtNum(activeKeysRes?.count)}\n` +
+        `• <b>Suspended/Banned:</b> ${fmtNum(bannedUsersRes?.count)}` +
+        `</blockquote>\n\n` +
+        `${e("CLOCK", "⏳")} <b>Audit Queue:</b> ${fmtNum(pendingAuditRes?.count)} Pending Slips\n` +
+        `<b>━━━━━━━━━━━━━━━━━━━━</b>\n` +
+        `${e("BTN_REFRESH", "🕒")} <i>Last updated: ${nowStr}</i>`;
 
     await editMsg(stockMsg, KB.getStockRefreshKeyboard());
     return;
