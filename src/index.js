@@ -683,9 +683,21 @@ async function handleCallback(cb, env) {
         `<b>━━━━━━━━━━━━━━━━━━━━</b>\n` +
         `${e("BTN_REFRESH", "🕒")} <i>Last updated: ${nowStr}</i>`;
 
-    await editMsg(stockMsg, KB.getStockRefreshKeyboard());
-    return;
-  }
+      await tg(env, "editMessageText", {
+        chat_id: cb.message.chat.id,
+        message_id: cb.message.message_id,
+        text: updatedText,
+        parse_mode: "HTML",
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: "🔄 Refresh Stats", callback_data: "admin_refresh_stats" }]
+          ]
+        }
+      });
+      await tg(env, "answerCallbackQuery", { callback_query_id: cb.id, text: "Stats updated!" });
+      return;
+    }
+
 
   // --- B. PAYMENT GROUP STATS REFRESH ---
   if (paymentGroupId && chatId === paymentGroupId && data === "admin_refresh_stats") {
