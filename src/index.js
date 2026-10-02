@@ -1208,7 +1208,7 @@ async function handleCallback(cb, env) {
       ]
     });
     return;
-  }
+}
 
   // Claim Test Key Execution
   if (data === "exec_claim_test_key") {
