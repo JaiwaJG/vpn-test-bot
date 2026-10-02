@@ -129,7 +129,7 @@ async function tgJson(env, method, payload) {
   }
 }
 
-// Chat ID နှိုင်းယှဉ်သည့် Helper (Supergroup -100 prefix ပြဿနာများ ကာကွယ်ရန်)
+// Chat ID နှိုင်းယှဉ်သည့် Helper
 function isMatchChatId(chatId, targetGroupId) {
   if (!targetGroupId || !chatId) return false;
   const a = String(chatId).replace(/^-100/, "").replace(/^-/, "").trim();
@@ -339,7 +339,6 @@ async function handleMessage(msg, env) {
       const bannedUsersRes = await env.DB.prepare("SELECT COUNT(*) as count FROM users WHERE is_banned = 1").first();
       const activeKeysRes = await env.DB.prepare("SELECT COUNT(DISTINCT user_id) as count FROM orders").first();
 
-      // Database ထဲမှ လက်ကျန် Key စာရင်း
       const stockRes = await env.DB.prepare(
         "SELECT category, COUNT(*) as count FROM keys GROUP BY category"
       ).all();
@@ -830,18 +829,18 @@ async function handleCallback(cb, env) {
     return;
   }
 
-  // Profile Orders
+  // Profile Orders (Test Key မပါဝင်စေရန် category != 'test' သတ်မှတ်ထားပါသည်)
   if (data.startsWith("menu_profile_p_")) {
     const page = parseInt(data.replace("menu_profile_p_", ""), 10) || 1;
     const pageSize = 10;
     const offset = (page - 1) * pageSize;
 
-    const totalOrdersRes = await env.DB.prepare("SELECT COUNT(*) as count FROM orders WHERE user_id = ?").bind(userId).first();
+    const totalOrdersRes = await env.DB.prepare("SELECT COUNT(*) as count FROM orders WHERE user_id = ? AND category != 'test'").bind(userId).first();
     const totalOrders = totalOrdersRes?.count || 0;
     const totalPages = Math.ceil(totalOrders / pageSize) || 1;
 
     const ordersRes = await env.DB.prepare(
-      "SELECT id, category, price, created_at FROM orders WHERE user_id = ? ORDER BY id DESC LIMIT ? OFFSET ?"
+      "SELECT id, category, price, created_at FROM orders WHERE user_id = ? AND category != 'test' ORDER BY id DESC LIMIT ? OFFSET ?"
     ).bind(userId, pageSize, offset).all();
 
     const orders = ordersRes.results || [];
@@ -893,12 +892,12 @@ async function handleCallback(cb, env) {
 
     let statusText = "";
     if (now > expiryDate) {
-      statusText = `🔴 <b>Expired</b>`;
+      statusText = `${e("INACTIVE", "🔴")} <b>Expired</b>`;
     } else {
       const diffMs = expiryDate - now;
       const leftDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
       const leftHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-      statusText = `🟢 <b>Active (${leftDays}d ${leftHours}h remaining)</b>`;
+      statusText = `${e("ACTIVE", "🟢")} <b>Active (${leftDays}d ${leftHours}h remaining)</b>`;
     }
 
     const detailMsg = 
@@ -925,7 +924,7 @@ async function handleCallback(cb, env) {
   if (data.startsWith("del_conf_")) {
     const [, , orderId, returnPage] = data.split("_");
     const warnMsg = 
-      `${e("WARNING", "⚠️️")} <b>Delete Confirmation</b>\n` +
+      `${e("WARNING", "⚠️")} <b>Delete Confirmation</b>\n` +
       `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
       `Are you sure you want to permanently delete Key (#${orderId}) from your profile history?\n\n` +
       `<i>(Notice: This action cannot be undone and your key will be removed permanently)</i>`;
@@ -1050,7 +1049,6 @@ async function handleCallback(cb, env) {
       return;
     }
 
-    // Database ထဲမှ သက်ဆိုင်ရာ category ၏ Key ကို ရယူခြင်း
     const keyItem = await env.DB.prepare(
       "SELECT id, access_key FROM keys WHERE category = ? LIMIT 1"
     ).bind(category).first();
@@ -1070,7 +1068,6 @@ async function handleCallback(cb, env) {
       return;
     }
 
-    // Balance နှုတ်ခြင်း၊ Key အား keys table မှ ဖျက်ခြင်း၊ Orders ထဲ ထည့်သွင်းခြင်း
     try {
       await env.DB.prepare(
         "UPDATE users SET balance = balance - ?, total_spent = COALESCE(total_spent, 0) + ?, total_orders = total_orders + 1 WHERE telegram_id = ?"
@@ -1133,7 +1130,7 @@ async function handleCallback(cb, env) {
     return;
   }
 
-  // Free Test Key Menu Handler
+  // Free Test Key Menu Handler (Profile မရောဘဲ သီးသန့်ကြည့်ရှုရန် view_claimed_test_key ချိတ်ထားပါသည်)
   if (data === "menu_test" || data === "menu_test_key_info") {
     const existingTest = await env.DB.prepare(
       "SELECT * FROM orders WHERE user_id = ? AND category = 'test' ORDER BY created_at DESC LIMIT 1"
@@ -1160,7 +1157,7 @@ async function handleCallback(cb, env) {
 
         await editMsg(claimedText, {
           inline_keyboard: [
-            [makeBtn("View My Test Key", "callback_data", `view_ord_${existingTest.id}_1`, null, "BTN_KEY")],
+            [makeBtn("View My Test Key", "callback_data", "view_claimed_test_key", null, "BTN_KEY")],
             [makeBtn("Back to Home", "callback_data", "menu_home", null, "BTN_HOME")]
           ]
         });
@@ -1186,7 +1183,7 @@ async function handleCallback(cb, env) {
           `${e("WARNING", "⚠️")} <b>Test Key Already Claimed!</b>\n\nPlease wait until your trial cooldown period expires before claiming again.`,
           {
             inline_keyboard: [
-              [makeBtn("View My Test Key", "callback_data", `view_ord_${existingTest.id}_1`, null, "BTN_KEY")],
+              [makeBtn("View My Test Key", "callback_data", "view_claimed_test_key", null, "BTN_KEY")],
               [makeBtn("Back to Home", "callback_data", "menu_home", null, "BTN_HOME")]
             ]
           }
@@ -1195,7 +1192,6 @@ async function handleCallback(cb, env) {
       }
     }
 
-    // Database ထဲရှိ keys table မှ category = 'test' ဖြစ်သော Key ရှာဖွေခြင်း
     const testKeyItem = await env.DB.prepare(
       "SELECT id, access_key FROM keys WHERE category = 'test' LIMIT 1"
     ).first();
@@ -1213,7 +1209,6 @@ async function handleCallback(cb, env) {
       return;
     }
 
-    // Key အား stock မှ ဖျက်ထုတ်ပြီး User Order သို့ မှတ်တမ်းတင်ခြင်း
     await env.DB.prepare("DELETE FROM keys WHERE id = ?").bind(testKeyItem.id).run();
     await env.DB.prepare("INSERT INTO orders (user_id, category, access_key, price) VALUES (?, 'test', ?, 0)").bind(userId, testKeyItem.access_key).run();
 
@@ -1230,7 +1225,7 @@ async function handleCallback(cb, env) {
     return;
   }
 
-  // View Existing Test Key
+  // View Existing Test Key (Free Test Key ထဲတွင်သာ သီးသန့်ကြည့်ရှုနိုင်သည်)
   if (data === "view_claimed_test_key") {
     const existingTest = await env.DB.prepare(
       "SELECT access_key FROM orders WHERE user_id = ? AND category = 'test' ORDER BY created_at DESC LIMIT 1"

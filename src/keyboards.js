@@ -65,9 +65,9 @@ export function getProfileOrdersKeyboard(orders, page, totalPages) {
   if (row.length > 0) inlineKeyboard.push(row);
 
   let navRow = [];
-  if (page > 1) navRow.push(makeBtn("◀️ Prev", "callback_data", `menu_profile_p_${page - 1}`));
-  if (totalPages > 1) navRow.push(makeBtn(`📄 ${page}/${totalPages}`, "callback_data", "noop"));
-  if (page < totalPages) navRow.push(makeBtn("Next ▶️", "callback_data", `menu_profile_p_${page + 1}`));
+  if (page > 1) navRow.push(makeBtn("Prev", "callback_data", `menu_profile_p_${page - 1}`, null, "BTN_PREV"));
+  if (totalPages > 1) navRow.push(makeBtn(`${page}/${totalPages}`, "callback_data", "noop", "success", "BTN_PAGE"));
+  if (page < totalPages) navRow.push(makeBtn("Next", "callback_data", `menu_profile_p_${page + 1}`, null, "BTN_NEXT"));
   if (navRow.length > 0) inlineKeyboard.push(navRow);
 
   inlineKeyboard.push([makeBtn("Back to Home", "callback_data", "menu_home", null, "BTN_HOME")]);
