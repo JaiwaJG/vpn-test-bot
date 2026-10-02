@@ -1018,35 +1018,54 @@ async function handleCallback(cb, env) {
     return;
   }
 
-  // Test Key Info Page
-  if (data === "menu_test_key_info") {
-    if (user.last_claimed_test_at && user.current_test_key) {
-      const lastClaim = new Date(user.last_claimed_test_at.replace(" ", "T") + "Z");
-      const nextDate = new Date(lastClaim.getTime() + 30 * 24 * 60 * 60 * 1000);
-      const now = new Date();
+    // Free Test Key Menu Handler
+    if (data === "menu_test") {
+      // ၁။ User က Test Key ယူထားပြီးသား ရှိမရှိ စစ်ဆေးခြင်း
+      const existingTest = await env.DB.prepare(
+        "SELECT * FROM orders WHERE user_id = ? AND category = 'test' ORDER BY created_at DESC LIMIT 1"
+      ).bind(user.telegram_id).first();
 
-      if (now < nextDate) {
-        const remainingMs = nextDate - now;
-        const days = Math.floor(remainingMs / (1000 * 60 * 60 * 24));
-        const hours = Math.floor((remainingMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      if (existingTest) {
+        // သက်တမ်းတွက်ချက်ခြင်း (ရက် ၃၀ Cooldown သတ်မှတ်ထားလျှင်)
+        const claimedDate = new Date(existingTest.created_at);
+        const nextAvailDate = new Date(claimedDate.getTime() + (30 * 24 * 60 * 60 * 1000));
+        const now = new Date();
 
-        await editMsg(
+        // အကယ်၍ ရက် ၃၀ မပြည့်သေးပါက ဒုတိယပုံစံအတိုင်း ပြသမည်
+        if (now.getTime() < nextAvailDate.getTime()) {
+          const diffMs = nextAvailDate.getTime() - now.getTime();
+          const daysLeft = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+          const hoursLeft = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+
+          // ရက်စွဲ format ပြင်ဆင်ခြင်း
+          const fmt = (d) => d.toLocaleString("en-US", { 
+            day: "numeric", month: "short", year: "numeric", 
+            hour: "2-digit", minute: "2-digit", hour12: true, 
+            timeZone: "Asia/Yangon" 
+          });
+
+          const claimedText = 
           `${e("WARNING", "⚠️")} <b>Test Key Already Claimed!</b>\n` +
           `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
           `<blockquote>` +
           `• ${e("DATE", "📅")} Claimed On: <b>${MSG.formatMyanmarTime(lastClaim)}</b>\n` +
           `• ${e("CLOCK", "⏳")} Next Available: <b>${MSG.formatMyanmarTime(nextDate)}</b>` +
           `</blockquote>\n\n` +
-          `<i>You can claim another test key in <b>${days} days and ${hours} hours</b>.</i>`,
-          {
+          `<i>You can claim another test key in <b>${days} days and ${hours} hours</b>.</i>`;
+
+          await editMsg(claimedText, {
             inline_keyboard: [
-              [makeBtn("View My Test Key", "callback_data", "view_claimed_test_key", null, "BTN_KEY")],
+              [makeBtn("View My Test Key", "callback_data", `view_ord_${existingTest.id}_1`, null, "BTN_KEY")],
               [makeBtn("Back to Home", "callback_data", "menu_home", null, "BTN_HOME")]
             ]
-          }
-        );
-        return;
+          });
+          return;
+        }
       }
+
+      // မယူရသေးပါက ပုံမှန် Claim ရမည့် မိတ်ဆက်စာမျက်နှာကို ပြသမည်
+      await editMsg(MSG.getTestKeyIntroMessage(), KB.getTestKeyKeyboard());
+      return;
     }
 
     await editMsg(MSG.getTestKeyInfoMessage(), {
@@ -1104,4 +1123,3 @@ async function handleCallback(cb, env) {
     );
     return;
   }
-}
