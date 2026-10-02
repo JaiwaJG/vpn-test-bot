@@ -153,8 +153,8 @@ export function getStatsRefreshKeyboard() {
 export function getTestKeyKeyboard() {
   return {
     inline_keyboard: [
-      [makeBtn("🎁 Claim Free Test Key", "callback_data", "exec_claim_test_key", null, "BTN_KEY")],
-      [makeBtn("🏠 Back to Home", "callback_data", "menu_home", null, "BTN_HOME")]
+      [makeBtn(" Claim Free Test Key", "callback_data", "exec_claim_test_key", null, "BTN_KEY")],
+      [makeBtn(" Back to Home", "callback_data", "menu_home", null, "BTN_HOME")]
     ]
   };
 }

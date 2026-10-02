@@ -26,7 +26,7 @@ export default {
     try {
       const now = new Date();
 
-      // --- အပိုင်း ၁။ သက်တမ်းကုန်သွားသော TEST KEY များကို အလိုအလျောက် ဖျက်ပြီး Noti ပို့ခြင်း ---
+      // --- အပိုင်း ၁။ သက်တမ်းကုန်သွားသော TEST KEY များကို ဖျက်ပြီး Noti ပို့ခြင်း ---
       const expiredTests = await env.DB.prepare(`
         SELECT orders.*, users.first_name 
         FROM orders 
@@ -41,12 +41,9 @@ export default {
         const createdAt = new Date(order.created_at);
         const expireAt = new Date(createdAt.getTime() + totalDays * 24 * 60 * 60 * 1000);
 
-        // သတ်မှတ်ရက် ကျော်လွန်သွားပါက (Expired ဖြစ်သွားပါက)
         if (now.getTime() >= expireAt.getTime()) {
-          // ၁။ Database ထဲမှ အဆိုပါ Test Key Order ကို အပြီးတိုင် ဖျက်ပစ်ခြင်း
           await env.DB.prepare("DELETE FROM orders WHERE id = ?").bind(order.id).run();
 
-          // ၂။ User ဆီသို့ Test Key အသစ် ပြန်ယူနိုင်ပြီဖြစ်ကြောင်း Noti ပို့ခြင်း
           const buyerName = order.first_name || "Customer";
           const expiredMsg = MSG.getTestKeyExpiredMessage(buyerName);
 
@@ -122,6 +119,36 @@ async function tg(env, method, payload) {
   });
 }
 
+// Telegram Request Helper with JSON return
+async function tgJson(env, method, payload) {
+  try {
+    const res = await tg(env, method, payload);
+    return await res.json();
+  } catch (e) {
+    return null;
+  }
+}
+
+// Chat ID နှိုင်းယှဉ်သည့် Helper (Supergroup -100 prefix ပြဿနာများ ကာကွယ်ရန်)
+function isMatchChatId(chatId, targetGroupId) {
+  if (!targetGroupId || !chatId) return false;
+  const a = String(chatId).replace(/^-100/, "").replace(/^-/, "").trim();
+  const b = String(targetGroupId).replace(/^-100/, "").replace(/^-/, "").trim();
+  return a === b;
+}
+
+// Admin ဟုတ်မဟုတ် စစ်ဆေးခြင်း
+async function checkIsAdmin(env, chatId, user) {
+  if (user?.username && CONFIG.ADMIN_USERNAME && user.username.toLowerCase().replace("@", "") === CONFIG.ADMIN_USERNAME.toLowerCase().replace("@", "")) {
+    return true;
+  }
+  const memberData = await tgJson(env, "getChatMember", {
+    chat_id: chatId,
+    user_id: user.id
+  });
+  return memberData?.ok && ["creator", "administrator"].includes(memberData?.result?.status);
+}
+
 // User Record Finder
 async function getOrCreateUser(env, from) {
   let user = await env.DB.prepare("SELECT * FROM users WHERE telegram_id = ?").bind(from.id).first();
@@ -148,9 +175,7 @@ async function handleMessage(msg, env) {
         chat_id: msg.chat.id,
         message_id: msg.message_id
       });
-    } catch (delErr) {
-      console.error("Error deleting message:", delErr);
-    }
+    } catch (delErr) {}
 
     const user = await getOrCreateUser(env, msg.from);
 
@@ -263,16 +288,12 @@ async function handleMessage(msg, env) {
   }
 
   // --- 2. PAYMENT AUDIT GROUP COMMANDS ---
-  if (paymentGroupId && chatId === paymentGroupId) {
-    const chatMember = await tg(env, "getChatMember", {
-      chat_id: chatId,
-      user_id: msg.from.id
-    });
-    const isAdmin = ["creator", "administrator"].includes(chatMember?.result?.status);
+  if (paymentGroupId && isMatchChatId(chatId, paymentGroupId)) {
+    const isAdmin = await checkIsAdmin(env, chatId, msg.from);
     if (!isAdmin) return;
 
     if (text.startsWith("/ban")) {
-      const targetId = text.split(" ")[1]?.trim();
+      const targetId = text.split(/\s+/)[1]?.trim();
       if (targetId) {
         await env.DB.prepare("UPDATE users SET is_banned = 1 WHERE telegram_id = ?").bind(targetId).run();
         await tg(env, "sendMessage", { chat_id: chatId, text: `${e("BAN", "🚫")} User <code>${targetId}</code> has been banned.`, parse_mode: "HTML" });
@@ -288,7 +309,7 @@ async function handleMessage(msg, env) {
     }
 
     if (text.startsWith("/unban")) {
-      const targetId = text.split(" ")[1]?.trim();
+      const targetId = text.split(/\s+/)[1]?.trim();
       if (targetId) {
         await env.DB.prepare("UPDATE users SET is_banned = 0 WHERE telegram_id = ?").bind(targetId).run();
         await tg(env, "sendMessage", { chat_id: chatId, text: `${e("DONE", "✅")} User <code>${targetId}</code> has been unbanned.`, parse_mode: "HTML" });
@@ -303,8 +324,9 @@ async function handleMessage(msg, env) {
       return;
     }
 
-    // --- ADVANCED STORE ANALYTICS & STATS ---
-    if (text === "/stats" || text.startsWith("/stats@")) {
+    // --- STORE ANALYTICS & STATS ---
+    const cleanCmd = text.split("@")[0].split(/\s+/)[0].toLowerCase();
+    if (cleanCmd === "/stats") {
       const totalRevRes = await env.DB.prepare(
         "SELECT SUM(price) as total_rev, COUNT(*) as total_orders FROM orders WHERE category != 'test'"
       ).first();
@@ -315,10 +337,11 @@ async function handleMessage(msg, env) {
 
       const totalUsersRes = await env.DB.prepare("SELECT COUNT(*) as count FROM users").first();
       const bannedUsersRes = await env.DB.prepare("SELECT COUNT(*) as count FROM users WHERE is_banned = 1").first();
-      const activeKeysRes = await env.DB.prepare("SELECT COUNT(DISTINCT user_id) as count FROM orders WHERE expires_at > datetime('now')").first();
+      const activeKeysRes = await env.DB.prepare("SELECT COUNT(DISTINCT user_id) as count FROM orders").first();
 
+      // Database ထဲမှ လက်ကျန် Key စာရင်း
       const stockRes = await env.DB.prepare(
-        "SELECT category, COUNT(*) as count FROM keys WHERE is_used = 0 GROUP BY category"
+        "SELECT category, COUNT(*) as count FROM keys GROUP BY category"
       ).all();
 
       const stockMap = { test: 0, "50gb": 0, "100gb": 0, "250gb": 0 };
@@ -380,8 +403,8 @@ async function handleMessage(msg, env) {
       return;
     }
 
-    // 💰 Manual Balance Management (/addbal & /subbal)
-    if (text.startsWith("/addbal") || text.startsWith("/subbal")) {
+    // 💰 Manual Balance Management (/addbal, /addbl, /subbal)
+    if (/^\/(addbal|addbl|subbal)\b/i.test(text)) {
       const parts = text.split(/\s+/);
       const cmd = parts[0].toLowerCase();
       const targetInput = parts[1];
@@ -423,7 +446,7 @@ async function handleMessage(msg, env) {
         return;
       }
 
-      const isAdd = cmd.startsWith("/addbal");
+      const isAdd = cmd.startsWith("/add");
 
       if (!isAdd && targetUser.balance < amount) {
         await tg(env, "sendMessage", {
@@ -516,11 +539,11 @@ async function handleMessage(msg, env) {
   }
 
   // --- 3. STOCK MANAGEMENT GROUP COMMANDS ---
-  if (stockGroupId && chatId === stockGroupId) {
-    const cleanCmd = text.split("@")[0].split(" ")[0].split("\n")[0];
+  if (stockGroupId && isMatchChatId(chatId, stockGroupId)) {
+    const cleanCmd = text.split("@")[0].split(/\s+/)[0].toLowerCase();
 
     if (cleanCmd === "/stock") {
-      const counts = await env.DB.prepare("SELECT category, COUNT(*) as count FROM keys WHERE is_used = 0 GROUP BY category").all();
+      const counts = await env.DB.prepare("SELECT category, COUNT(*) as count FROM keys GROUP BY category").all();
       let stockMap = { test: 0, "50gb": 0, "100gb": 0, "250gb": 0 };
       if (counts.results) {
         counts.results.forEach(r => { stockMap[r.category] = r.count; });
@@ -559,11 +582,11 @@ async function handleMessage(msg, env) {
       }
 
       const stmts = validKeys.map(k => 
-        env.DB.prepare("INSERT OR IGNORE INTO keys (category, access_key, is_used) VALUES (?, ?, 0)").bind(category, k)
+        env.DB.prepare("INSERT OR IGNORE INTO keys (category, access_key) VALUES (?, ?)").bind(category, k)
       );
       await env.DB.batch(stmts);
 
-      const currentStock = await env.DB.prepare("SELECT COUNT(*) as count FROM keys WHERE category = ? AND is_used = 0").bind(category).first();
+      const currentStock = await env.DB.prepare("SELECT COUNT(*) as count FROM keys WHERE category = ?").bind(category).first();
 
       await tg(env, "sendMessage", {
         chat_id: chatId,
@@ -599,8 +622,8 @@ async function handleCallback(cb, env) {
   }
 
   // --- A. STOCK GROUP ACTIONS ---
-  if (stockGroupId && chatId === stockGroupId && data === "admin_refresh_stock") {
-    const counts = await env.DB.prepare("SELECT category, COUNT(*) as count FROM keys WHERE is_used = 0 GROUP BY category").all();
+  if (stockGroupId && isMatchChatId(chatId, stockGroupId) && data === "admin_refresh_stock") {
+    const counts = await env.DB.prepare("SELECT category, COUNT(*) as count FROM keys GROUP BY category").all();
     let stockMap = { test: 0, "50gb": 0, "100gb": 0, "250gb": 0 };
     if (counts.results) {
       counts.results.forEach(r => { stockMap[r.category] = r.count; });
@@ -619,12 +642,9 @@ async function handleCallback(cb, env) {
   }
 
   // --- B. PAYMENT GROUP STATS REFRESH ---
-  if (paymentGroupId && chatId === paymentGroupId && data === "admin_refresh_stats") {
-    const chatMember = await tg(env, "getChatMember", {
-      chat_id: chatId,
-      user_id: userId
-    });
-    if (!["creator", "administrator"].includes(chatMember?.result?.status)) {
+  if (paymentGroupId && isMatchChatId(chatId, paymentGroupId) && data === "admin_refresh_stats") {
+    const isAdmin = await checkIsAdmin(env, chatId, cb.from);
+    if (!isAdmin) {
       await tg(env, "answerCallbackQuery", {
         callback_query_id: callbackId,
         text: "⚠️ Admins only!",
@@ -637,9 +657,9 @@ async function handleCallback(cb, env) {
     const todayRes = await env.DB.prepare("SELECT SUM(price) as today_rev, COUNT(*) as today_orders FROM orders WHERE category != 'test' AND date(created_at, '+6 hours 30 minutes') = date('now', '+6 hours 30 minutes')").first();
     const totalUsersRes = await env.DB.prepare("SELECT COUNT(*) as count FROM users").first();
     const bannedUsersRes = await env.DB.prepare("SELECT COUNT(*) as count FROM users WHERE is_banned = 1").first();
-    const activeKeysRes = await env.DB.prepare("SELECT COUNT(DISTINCT user_id) as count FROM orders WHERE expires_at > datetime('now')").first();
+    const activeKeysRes = await env.DB.prepare("SELECT COUNT(DISTINCT user_id) as count FROM orders").first();
     
-    const stockRes = await env.DB.prepare("SELECT category, COUNT(*) as count FROM keys WHERE is_used = 0 GROUP BY category").all();
+    const stockRes = await env.DB.prepare("SELECT category, COUNT(*) as count FROM keys GROUP BY category").all();
     const stockMap = { test: 0, "50gb": 0, "100gb": 0, "250gb": 0 };
     if (stockRes?.results) {
       for (const row of stockRes.results) {
@@ -690,7 +710,7 @@ async function handleCallback(cb, env) {
   }
 
   // --- C. PAYMENT AUDIT ACTIONS ---
-  if (paymentGroupId && chatId === paymentGroupId) {
+  if (paymentGroupId && isMatchChatId(chatId, paymentGroupId)) {
     if (data.startsWith("pay_app_")) {
       const [, , reqId, targetUserId, amountStr] = data.split("_");
       const amount = Number(amountStr);
@@ -905,7 +925,7 @@ async function handleCallback(cb, env) {
   if (data.startsWith("del_conf_")) {
     const [, , orderId, returnPage] = data.split("_");
     const warnMsg = 
-      `${e("WARNING", "⚠️")} <b>Delete Confirmation</b>\n` +
+      `${e("WARNING", "⚠️️")} <b>Delete Confirmation</b>\n` +
       `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
       `Are you sure you want to permanently delete Key (#${orderId}) from your profile history?\n\n` +
       `<i>(Notice: This action cannot be undone and your key will be removed permanently)</i>`;
@@ -1030,8 +1050,9 @@ async function handleCallback(cb, env) {
       return;
     }
 
+    // Database ထဲမှ သက်ဆိုင်ရာ category ၏ Key ကို ရယူခြင်း
     const keyItem = await env.DB.prepare(
-      "SELECT id, access_key FROM keys WHERE category = ? AND is_used = 0 LIMIT 1"
+      "SELECT id, access_key FROM keys WHERE category = ? LIMIT 1"
     ).bind(category).first();
 
     if (!keyItem) {
@@ -1049,11 +1070,18 @@ async function handleCallback(cb, env) {
       return;
     }
 
-    await env.DB.batch([
-      env.DB.prepare("UPDATE users SET balance = balance - ?, total_spent = total_spent + ?, total_orders = total_orders + 1 WHERE telegram_id = ?").bind(price, price, userId),
-      env.DB.prepare("DELETE FROM keys WHERE id = ?").bind(keyItem.id),
-      env.DB.prepare("INSERT INTO orders (user_id, category, access_key, price) VALUES (?, ?, ?, ?)").bind(userId, category, keyItem.access_key, price)
-    ]);
+    // Balance နှုတ်ခြင်း၊ Key အား keys table မှ ဖျက်ခြင်း၊ Orders ထဲ ထည့်သွင်းခြင်း
+    try {
+      await env.DB.prepare(
+        "UPDATE users SET balance = balance - ?, total_spent = COALESCE(total_spent, 0) + ?, total_orders = total_orders + 1 WHERE telegram_id = ?"
+      ).bind(price, price, userId).run();
+    } catch (_) {
+      await env.DB.prepare(
+        "UPDATE users SET balance = balance - ?, total_orders = total_orders + 1 WHERE telegram_id = ?"
+      ).bind(price, userId).run();
+    }
+    await env.DB.prepare("DELETE FROM keys WHERE id = ?").bind(keyItem.id).run();
+    await env.DB.prepare("INSERT INTO orders (user_id, category, access_key, price) VALUES (?, ?, ?, ?)").bind(userId, category, keyItem.access_key, price).run();
 
     await editMsg(MSG.getKeyDeliveryMessage(category, price, keyItem.access_key), {
       inline_keyboard: [
@@ -1063,7 +1091,7 @@ async function handleCallback(cb, env) {
       ]
     });
 
-    // 📢 Sales Proof Channel သို့ အရောင်းပြေစာ ပို့ခြင်း
+    // 📢 Sales Proof Channel သို့ ပို့ခြင်း
     const salesChannelId = String(env.SALES_CHANNEL_ID || "").trim();
     if (salesChannelId) {
       try {
@@ -1075,16 +1103,14 @@ async function handleCallback(cb, env) {
           parse_mode: "HTML",
           reply_markup: KB.getSalesChannelKeyboard()
         });
-      } catch (err) {
-        console.error("Sales Channel Send Catch Error:", err.message || err);
-      }
+      } catch (err) {}
     }
 
     // ⚠️ Stock Group သို့ လက်ကျန်သတိပေး Noti ပို့ခြင်း
     if (stockGroupId) {
       try {
         const countRow = await env.DB.prepare(
-          "SELECT COUNT(*) as count FROM keys WHERE category = ? AND is_used = 0"
+          "SELECT COUNT(*) as count FROM keys WHERE category = ?"
         ).bind(category).first();
         
         const remainingStock = Number(countRow?.count || 0);
@@ -1101,19 +1127,17 @@ async function handleCallback(cb, env) {
             parse_mode: "HTML"
           });
         }
-      } catch (stockErr) {
-        console.error("Stock Group Alert Error:", stockErr.message || stockErr);
-      }
+      } catch (stockErr) {}
     }
 
     return;
   }
 
-  // Free Test Key Menu Handler (menu_test သို့မဟုတ် menu_test_key_info နှစ်ခုလုံး အဆင်ပြေစေရန်)
+  // Free Test Key Menu Handler
   if (data === "menu_test" || data === "menu_test_key_info") {
     const existingTest = await env.DB.prepare(
       "SELECT * FROM orders WHERE user_id = ? AND category = 'test' ORDER BY created_at DESC LIMIT 1"
-    ).bind(user.telegram_id).first();
+    ).bind(userId).first();
 
     if (existingTest) {
       const claimedDate = new Date(existingTest.created_at);
@@ -1148,19 +1172,18 @@ async function handleCallback(cb, env) {
     return;
   }
 
-  // Claim Test Key Execution (exec_claim_test_key သို့မဟုတ် claim_free_test နှစ်ခုလုံးကို support လုပ်သည်)
+  // Claim Test Key Execution
   if (data === "exec_claim_test_key" || data === "claim_free_test") {
-    // Cooldown ထပ်မံစစ်ဆေးခြင်း
     const existingTest = await env.DB.prepare(
       "SELECT * FROM orders WHERE user_id = ? AND category = 'test' ORDER BY created_at DESC LIMIT 1"
-    ).bind(user.telegram_id).first();
+    ).bind(userId).first();
 
     if (existingTest) {
       const claimedDate = new Date(existingTest.created_at);
       const nextAvailDate = new Date(claimedDate.getTime() + (30 * 24 * 60 * 60 * 1000));
       if (new Date().getTime() < nextAvailDate.getTime()) {
         await editMsg(
-          `${e("WARNING", "⚠️")} <b>Test Key Already Claimed!</b>\nPlease wait until your trial cooldown period expires.`,
+          `${e("WARNING", "⚠️")} <b>Test Key Already Claimed!</b>\n\nPlease wait until your trial cooldown period expires before claiming again.`,
           {
             inline_keyboard: [
               [makeBtn("View My Test Key", "callback_data", `view_ord_${existingTest.id}_1`, null, "BTN_KEY")],
@@ -1172,13 +1195,14 @@ async function handleCallback(cb, env) {
       }
     }
 
+    // Database ထဲရှိ keys table မှ category = 'test' ဖြစ်သော Key ရှာဖွေခြင်း
     const testKeyItem = await env.DB.prepare(
-      "SELECT id, access_key FROM keys WHERE category = 'test' AND is_used = 0 LIMIT 1"
+      "SELECT id, access_key FROM keys WHERE category = 'test' LIMIT 1"
     ).first();
 
     if (!testKeyItem) {
       await editMsg(
-        `${e("UNSTOCK", "😔")} <b>Out of Stock!</b>\nNo free test keys are currently available in the pool. Please check back soon.`,
+        `${e("UNSTOCK", "😔")} <b>Out of Stock!</b>\n\nNo free test keys are currently available in the pool. Please check back soon or contact support.`,
         {
           inline_keyboard: [
             [makeBtn("Back to Home", "callback_data", "menu_home", null, "BTN_HOME")],
@@ -1189,11 +1213,9 @@ async function handleCallback(cb, env) {
       return;
     }
 
-    // Key ကို stock မှ delete လုပ်ပြီး order record ထည့်သွင်းခြင်း
-    await env.DB.batch([
-      env.DB.prepare("DELETE FROM keys WHERE id = ?").bind(testKeyItem.id),
-      env.DB.prepare("INSERT INTO orders (user_id, category, access_key, price) VALUES (?, 'test', ?, 0)").bind(userId, testKeyItem.access_key)
-    ]);
+    // Key အား stock မှ ဖျက်ထုတ်ပြီး User Order သို့ မှတ်တမ်းတင်ခြင်း
+    await env.DB.prepare("DELETE FROM keys WHERE id = ?").bind(testKeyItem.id).run();
+    await env.DB.prepare("INSERT INTO orders (user_id, category, access_key, price) VALUES (?, 'test', ?, 0)").bind(userId, testKeyItem.access_key).run();
 
     await editMsg(
       `${e("SUCCESS", "🎉")} <b>Your Free Test Key is Ready!</b>\n` +
