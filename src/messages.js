@@ -141,6 +141,21 @@ export function getTestKeyInfoMessage() {
   );
 }
 
+export function getTestKeyIntroMessage() {
+  return (
+    `${e("FREEBIES", "🎁")} <b>Free Outline Test Key</b>\n` +
+    `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
+    `Claim an exclusive free test key to experience our high-speed network.\n\n` +
+    `<blockquote>` +
+    `${e("PIN", "📌")} <b>Freebie Terms:</b>\n` +
+    `• Each user can claim <b>1 free test key every 30 days</b>.\n` +
+    `• For individual use only; do not re-distribute.\n` +
+    `• The claimed key is saved in your Profile.` +
+    `</blockquote>\n\n` +
+    `Tap the button below to claim your key now. ${e("DOWN", "👇")}`
+  );
+}
+
 // Expiration Reminder Notification (English - Buy New Key Only)
 export function getExpiryReminderMessage(buyerName, category, accessKey, daysLeft = 2) {
   return (

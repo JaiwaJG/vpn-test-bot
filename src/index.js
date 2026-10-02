@@ -379,11 +379,13 @@ async function handleMessage(msg, env) {
         chat_id: chatId,
         text: statsMsg,
         parse_mode: "HTML",
-        reply_markup: KB.getStatsRefreshKeyboard()
-      });
+        reply_markup: [
+            [{ text: "🔄 Refresh Stats", callback_data: "admin_refresh_stats" }]
+          ]
+        }
+      );
       return;
     }
-  }
 
 
       // 💰 Manual Balance Management (/addbal & /subbal)
@@ -1242,3 +1244,4 @@ async function handleCallback(cb, env) {
     );
     return;
   }
+}

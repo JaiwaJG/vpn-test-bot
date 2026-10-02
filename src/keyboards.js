@@ -148,3 +148,12 @@ export function getStatsRefreshKeyboard() {
     ]
   };
 }
+
+export function getTestKeyKeyboard() {
+  return {
+    inline_keyboard: [
+      [makeBtn("🎁 Claim Free Test Key", "callback_data", "claim_free_test", null, "BTN_KEY")],
+      [makeBtn("🏠 Back to Home", "callback_data", "menu_home", null, "BTN_HOME")]
+    ]
+  };
+}
