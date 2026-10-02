@@ -5,9 +5,10 @@ export function getMainKeyboard() {
   return {
     inline_keyboard: [
       [
-        makeBtn("Buy Outline Key", "callback_data", "menu_buy", "success", "BTN_SHOP")],
+        makeBtn("Buy Outline Key", "callback_data", "menu_buy", "success", "BTN_SHOP")
+      ],
       [
-        makeBtn("Free Test Key", "callback_data", "menu_test_key_info", null, "BTN_FREEBIES")
+        makeBtn("Free Test Key", "callback_data", "menu_test", null, "BTN_FREEBIES")
       ],
       [
         makeBtn("Deposit", "callback_data", "menu_topup", null, "BTN_DEPOSIT"),
@@ -40,7 +41,7 @@ export function getBuyPackagesKeyboard() {
 export function getTopupKeyboard() {
   return {
     inline_keyboard: [
-      [makeBtn("2,500 MMK (50 GB Plan)", "callback_data", "topup_amt_2500" , "success", "BTN_DEPOSIT")],
+      [makeBtn("2,500 MMK (50 GB Plan)", "callback_data", "topup_amt_2500", "success", "BTN_DEPOSIT")],
       [makeBtn("4,500 MMK (100 GB Plan)", "callback_data", "topup_amt_4500", "success", "BTN_DEPOSIT")],
       [makeBtn("10,500 MMK (250 GB Plan)", "callback_data", "topup_amt_10500", "success", "BTN_DEPOSIT")],
       [makeBtn("Custom Deposit Amount", "callback_data", "topup_custom", "primary", "BTN_CUSTOM")],
@@ -78,9 +79,9 @@ export function getKeyDetailKeyboard(orderId, page, accessKey) {
   const safeKey = accessKey || "No-Key-Found";
   return {
     inline_keyboard: [
-      // ပုံထဲကလို Tap နှိပ်ရုံဖြင့် Key တန်း copy ယူမည့် Primary Color ခလုတ်
-      [makeBtn("Copy Key", "copy_text", safeKey, "primary", "BTN_COPY")],
-      // ပုံထဲကလို Danger Color (အနီရောင်) Delete ခလုတ်
+      // Tap နှိပ်ရုံဖြင့် Key တန်း copy ယူမည့် Primary Color ခလုတ်
+      [makeBtn("Copy Key", "copy_text", safeKey, "primary", "BTN_KEY")],
+      // Danger Color (အနီရောင်) Delete ခလုတ်
       [makeBtn("Delete Key", "callback_data", `del_conf_${orderId}_${page}`, "danger", "BTN_DELETE")],
       [makeBtn("Back to List", "callback_data", `menu_profile_p_${page}`, null, "BTN_BACK")],
       [makeBtn("Main Menu", "callback_data", "menu_home", null, "BTN_HOME")]
@@ -98,7 +99,7 @@ export function getDeleteConfirmKeyboard(orderId, page) {
   };
 }
 
-//Public sales channel
+// Public sales channel
 export function getSalesChannelKeyboard() {
   return {
     inline_keyboard: [
@@ -134,7 +135,7 @@ export function getTestKeyActionKeyboard(accessKey) {
   const safeKey = accessKey || "No-Key-Found";
   return {
     inline_keyboard: [
-      [makeBtn("Copy Test Key", "copy_text", safeKey, "primary", "BTN_COPY")],
+      [makeBtn("Copy Test Key", "copy_text", safeKey, "primary", "BTN_KEY")],
       [makeBtn("Back to Home", "callback_data", "menu_home", null, "BTN_HOME")]
     ]
   };
@@ -152,7 +153,7 @@ export function getStatsRefreshKeyboard() {
 export function getTestKeyKeyboard() {
   return {
     inline_keyboard: [
-      [makeBtn("🎁 Claim Free Test Key", "callback_data", "claim_free_test", null, "BTN_KEY")],
+      [makeBtn("🎁 Claim Free Test Key", "callback_data", "exec_claim_test_key", null, "BTN_KEY")],
       [makeBtn("🏠 Back to Home", "callback_data", "menu_home", null, "BTN_HOME")]
     ]
   };

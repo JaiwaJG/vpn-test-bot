@@ -20,7 +20,8 @@ export default {
 
     return new Response("OK");
   },
-// ⏰ Cloudflare Cron Trigger (Dynamic Expiry Alarm + Auto Clear Test Keys)
+
+  // ⏰ Cloudflare Cron Trigger (Dynamic Expiry Alarm + Auto Clear Test Keys)
   async scheduled(event, env, ctx) {
     try {
       const now = new Date();
@@ -34,7 +35,7 @@ export default {
       `).all();
 
       for (const order of expiredTests.results || []) {
-        const pkgConfig = CONFIG.PACKAGES[order.category] || { days: 1 }; // test key ရက် (ဥပမာ ၁ ရက် သို့မဟုတ် သတ်မှတ်ရက်)
+        const pkgConfig = CONFIG.PACKAGES[order.category] || { days: 1 };
         const totalDays = pkgConfig.days || 1;
         
         const createdAt = new Date(order.created_at);
@@ -55,7 +56,7 @@ export default {
             parse_mode: "HTML",
             reply_markup: {
               inline_keyboard: [
-                [makeBtn("Get New Test Key", "callback_data", "buy_test", null, "BTN_FREEBIES")],
+                [makeBtn("Get New Test Key", "callback_data", "menu_test", null, "BTN_FREEBIES")],
                 [makeBtn("Buy Outline Key", "callback_data", "menu_buy", null, "BTN_SHOP")]
               ]
             }
@@ -235,7 +236,7 @@ async function handleMessage(msg, env) {
 
       await tg(env, "sendMessage", {
         chat_id: chatId,
-        text: `${e("DONE", "✅")} <b>Payment Slip Received!</b>\n\nAmount: <b>${currentAmt.toLocaleString()} MMK</b>\nOur team is verifying your payment. ${e("CLOCK", "⏳")} \nYour wallet balance will be credited within <b>5 Minutes to 24 Hours maximum</b> automatically once approved.\n\nHave A Great Day ${e("STAR", "✨" )}`,
+        text: `${e("DONE", "✅")} <b>Payment Slip Received!</b>\n\nAmount: <b>${currentAmt.toLocaleString()} MMK</b>\nOur team is verifying your payment. ${e("CLOCK", "⏳")} \nYour wallet balance will be credited within <b>5 Minutes to 24 Hours maximum</b> automatically once approved.\n\nHave A Great Day ${e("STAR", "✨")}`,
         parse_mode: "HTML",
       });
 
@@ -263,19 +264,18 @@ async function handleMessage(msg, env) {
 
   // --- 2. PAYMENT AUDIT GROUP COMMANDS ---
   if (paymentGroupId && chatId === paymentGroupId) {
-  // Admin ဟုတ်မဟုတ် စစ်ဆေးခြင်း (Admin မဟုတ်ပါက မည်သည့် command မှ အလုပ်မလုပ်စေရန်)
     const chatMember = await tg(env, "getChatMember", {
       chat_id: chatId,
       user_id: msg.from.id
     });
     const isAdmin = ["creator", "administrator"].includes(chatMember?.result?.status);
-    if (!isAdmin) return; // Member သာမန်လူဖြစ်ပါက လုံးဝ အလုပ်မလုပ်ဘဲ ကျော်သွားမည်
+    if (!isAdmin) return;
+
     if (text.startsWith("/ban")) {
       const targetId = text.split(" ")[1]?.trim();
       if (targetId) {
         await env.DB.prepare("UPDATE users SET is_banned = 1 WHERE telegram_id = ?").bind(targetId).run();
         await tg(env, "sendMessage", { chat_id: chatId, text: `${e("BAN", "🚫")} User <code>${targetId}</code> has been banned.`, parse_mode: "HTML" });
-        // User ထံ အသိပေးစာ ပို့ခြင်း
         try {
           await tg(env, "sendMessage", {
             chat_id: targetId,
@@ -292,7 +292,6 @@ async function handleMessage(msg, env) {
       if (targetId) {
         await env.DB.prepare("UPDATE users SET is_banned = 0 WHERE telegram_id = ?").bind(targetId).run();
         await tg(env, "sendMessage", { chat_id: chatId, text: `${e("DONE", "✅")} User <code>${targetId}</code> has been unbanned.`, parse_mode: "HTML" });
-        // User ထံ အသိပေးစာ ပို့ခြင်း
         try {
           await tg(env, "sendMessage", {
             chat_id: targetId,
@@ -303,26 +302,21 @@ async function handleMessage(msg, env) {
       }
       return;
     }
-    
 
     // --- ADVANCED STORE ANALYTICS & STATS ---
     if (text === "/stats" || text.startsWith("/stats@")) {
-      // ၁။ All-time Sales & Revenue
       const totalRevRes = await env.DB.prepare(
         "SELECT SUM(price) as total_rev, COUNT(*) as total_orders FROM orders WHERE category != 'test'"
       ).first();
 
-      // ၂။ Today's Revenue & Orders (Myanmar Time +06:30)
       const todayRes = await env.DB.prepare(
         "SELECT SUM(price) as today_rev, COUNT(*) as today_orders FROM orders WHERE category != 'test' AND date(created_at, '+6 hours 30 minutes') = date('now', '+6 hours 30 minutes')"
       ).first();
 
-      // ၃။ User Statistics (Total, Active Key Users, Banned)
       const totalUsersRes = await env.DB.prepare("SELECT COUNT(*) as count FROM users").first();
       const bannedUsersRes = await env.DB.prepare("SELECT COUNT(*) as count FROM users WHERE is_banned = 1").first();
       const activeKeysRes = await env.DB.prepare("SELECT COUNT(DISTINCT user_id) as count FROM orders WHERE expires_at > datetime('now')").first();
 
-      // ၄။ Live Key Stock Inventory
       const stockRes = await env.DB.prepare(
         "SELECT category, COUNT(*) as count FROM keys WHERE is_used = 0 GROUP BY category"
       ).all();
@@ -336,12 +330,10 @@ async function handleMessage(msg, env) {
         }
       }
 
-      // ၅။ Pending Top-up Slips Queue
       const pendingAuditRes = await env.DB.prepare(
         "SELECT COUNT(*) as count FROM users WHERE pending_topup_amount > 0"
       ).first();
 
-      // Formatted Values
       const fmtNum = (n) => Number(n || 0).toLocaleString();
       const nowStr = new Date().toLocaleString("en-US", {
         day: "numeric", month: "short", year: "numeric",
@@ -379,23 +371,22 @@ async function handleMessage(msg, env) {
         chat_id: chatId,
         text: statsMsg,
         parse_mode: "HTML",
-        reply_markup: [
+        reply_markup: {
+          inline_keyboard: [
             [{ text: "🔄 Refresh Stats", callback_data: "admin_refresh_stats" }]
           ]
         }
-      );
+      });
       return;
     }
 
-
-      // 💰 Manual Balance Management (/addbal & /subbal)
+    // 💰 Manual Balance Management (/addbal & /subbal)
     if (text.startsWith("/addbal") || text.startsWith("/subbal")) {
       const parts = text.split(/\s+/);
       const cmd = parts[0].toLowerCase();
-      const targetInput = parts[1]; // Telegram ID သို့မဟုတ် @username
+      const targetInput = parts[1];
       const amount = parseInt(parts[2], 10);
 
-      // Argument စစ်ဆေးခြင်း
       if (!targetInput || isNaN(amount) || amount <= 0) {
         await tg(env, "sendMessage", {
           chat_id: chatId,
@@ -411,7 +402,6 @@ async function handleMessage(msg, env) {
         return;
       }
 
-      // User ရှာဖွေခြင်း (ID ဖြင့် သို့မဟုတ် Username ဖြင့်)
       let targetUser = null;
       if (targetInput.startsWith("@")) {
         const cleanUsername = targetInput.replace("@", "").trim();
@@ -435,7 +425,6 @@ async function handleMessage(msg, env) {
 
       const isAdd = cmd.startsWith("/addbal");
 
-      // Balance နှုတ်ယူချိန်တွင် လက်ကျန်ထက် ပိုနှုတ်မိခြင်းမှ ကာကွယ်ရန်
       if (!isAdd && targetUser.balance < amount) {
         await tg(env, "sendMessage", {
           chat_id: chatId,
@@ -445,7 +434,6 @@ async function handleMessage(msg, env) {
         return;
       }
 
-      // DB တွင် Balance အတိုး/အလျော့ ပြုလုပ်ခြင်း
       const sql = isAdd 
         ? "UPDATE users SET balance = balance + ?, last_topup_at = datetime('now', '+6 hours', '+30 minutes') WHERE telegram_id = ?"
         : "UPDATE users SET balance = balance - ? WHERE telegram_id = ?";
@@ -455,7 +443,6 @@ async function handleMessage(msg, env) {
       const updatedUser = await env.DB.prepare("SELECT balance FROM users WHERE telegram_id = ?").bind(targetUser.telegram_id).first();
       const newBal = Number(updatedUser?.balance || 0);
 
-      // Payment Group သို့ Admin အတည်ပြုချက်စာ ပို့ခြင်း
       const actionText = isAdd ? "Credited (+)" : "Deducted (-)";
       const actionEmoji = isAdd ? e("SUCCESS", "✅") : e("WARNING", "🔻");
 
@@ -472,7 +459,6 @@ async function handleMessage(msg, env) {
         parse_mode: "HTML"
       });
 
-      // User ထံသို့ Noti သီးသန့် အလိုအလျောက် ပို့ပေးခြင်း
       try {
         const userNotice = isAdd
           ? `${e("SUCCESS", "🎉")} <b>Balance Credited!</b>\n<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
@@ -487,14 +473,12 @@ async function handleMessage(msg, env) {
           text: userNotice,
           parse_mode: "HTML"
         });
-      } catch (err) {
-        // User က Bot ကို Block ထားပါက Error မတက်ဘဲ ကျော်သွားမည်
-      }
+      } catch (err) {}
 
       return;
     }
 
-      // 📢 Broadcast Announcement to All Users
+    // 📢 Broadcast Announcement to All Users
     if (text.startsWith("/broadcast")) {
       const broadcastMsg = text.replace(/^\/broadcast(@\w+)?/, "").trim();
       
@@ -507,7 +491,6 @@ async function handleMessage(msg, env) {
         return;
       }
 
-      // Ban မခံထားရတဲ့ active users အားလုံးကို ဆွဲထုတ်ခြင်း
       const allUsers = await env.DB.prepare("SELECT telegram_id FROM users WHERE is_banned = 0").all();
       const userList = allUsers.results || [];
       let successCount = 0;
@@ -520,9 +503,7 @@ async function handleMessage(msg, env) {
             parse_mode: "HTML"
           });
           successCount++;
-        } catch (e) {
-          // Bot ကို block ထားတဲ့ user တွေကို error မတက်ဘဲ ကျော်သွားမည်
-        }
+        } catch (e) {}
       }
 
       await tg(env, "sendMessage", { 
@@ -532,15 +513,14 @@ async function handleMessage(msg, env) {
       });
       return;
     }
-
-
+  }
 
   // --- 3. STOCK MANAGEMENT GROUP COMMANDS ---
   if (stockGroupId && chatId === stockGroupId) {
     const cleanCmd = text.split("@")[0].split(" ")[0].split("\n")[0];
 
     if (cleanCmd === "/stock") {
-      const counts = await env.DB.prepare("SELECT category, COUNT(*) as count FROM keys GROUP BY category").all();
+      const counts = await env.DB.prepare("SELECT category, COUNT(*) as count FROM keys WHERE is_used = 0 GROUP BY category").all();
       let stockMap = { test: 0, "50gb": 0, "100gb": 0, "250gb": 0 };
       if (counts.results) {
         counts.results.forEach(r => { stockMap[r.category] = r.count; });
@@ -579,11 +559,11 @@ async function handleMessage(msg, env) {
       }
 
       const stmts = validKeys.map(k => 
-        env.DB.prepare("INSERT OR IGNORE INTO keys (category, access_key) VALUES (?, ?)").bind(category, k)
+        env.DB.prepare("INSERT OR IGNORE INTO keys (category, access_key, is_used) VALUES (?, ?, 0)").bind(category, k)
       );
       await env.DB.batch(stmts);
 
-      const currentStock = await env.DB.prepare("SELECT COUNT(*) as count FROM keys WHERE category = ?").bind(category).first();
+      const currentStock = await env.DB.prepare("SELECT COUNT(*) as count FROM keys WHERE category = ? AND is_used = 0").bind(category).first();
 
       await tg(env, "sendMessage", {
         chat_id: chatId,
@@ -619,110 +599,93 @@ async function handleCallback(cb, env) {
   }
 
   // --- A. STOCK GROUP ACTIONS ---
-   if (data === "admin_refresh_stats") {
-      // Check Admin
-      const chatMember = await tg(env, "getChatMember", {
-        chat_id: cb.message.chat.id,
-        user_id: user.telegram_id
-      });
-      if (!["creator", "administrator"].includes(chatMember?.result?.status)) {
-        await tg(env, "answerCallbackQuery", {
-          callback_query_id: cb.id,
-          text: "⚠️️ Admins only!",
-          show_alert: true
-        });
-        return;
-      }
-
-      // DB Queries
-      const totalRevRes = await env.DB.prepare("SELECT SUM(price) as total_rev, COUNT(*) as total_orders FROM orders WHERE category != 'test'").first();
-      const todayRes = await env.DB.prepare("SELECT SUM(price) as today_rev, COUNT(*) as today_orders FROM orders WHERE category != 'test' AND date(created_at, '+6 hours 30 minutes') = date('now', '+6 hours 30 minutes')").first();
-      const totalUsersRes = await env.DB.prepare("SELECT COUNT(*) as count FROM users").first();
-      const bannedUsersRes = await env.DB.prepare("SELECT COUNT(*) as count FROM users WHERE is_banned = 1").first();
-      const activeKeysRes = await env.DB.prepare("SELECT COUNT(DISTINCT user_id) as count FROM orders WHERE expires_at > datetime('now')").first();
-      
-      const stockRes = await env.DB.prepare("SELECT category, COUNT(*) as count FROM keys WHERE is_used = 0 GROUP BY category").all();
-      const stockMap = { test: 0, "50gb": 0, "100gb": 0, "250gb": 0 };
-      if (stockRes?.results) {
-        for (const row of stockRes.results) {
-          if (stockMap.hasOwnProperty(row.category)) stockMap[row.category] = row.count;
-        }
-      }
-      const pendingAuditRes = await env.DB.prepare("SELECT COUNT(*) as count FROM users WHERE pending_topup_amount > 0").first();
-
-      const fmtNum = (n) => Number(n || 0).toLocaleString();
-      const nowStr = new Date().toLocaleString("en-US", {
-        day: "numeric", month: "short", year: "numeric",
-        hour: "2-digit", minute: "2-digit", hour12: true,
-        timeZone: "Asia/Yangon"
-      });
-
-      const updatedText = 
-        `${e("STATUS", "📊")} <b>Store Analytics & Executive Report</b>\n` +
-        `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
-        `${e("BALANCE", "💰")} <b>Revenue & Performance</b>\n` +
-        `<blockquote>` +
-        `• <b>Today:</b> ${fmtNum(todayRes?.today_rev)} MMK (${fmtNum(todayRes?.today_orders)} Orders)\n` +
-        `• <b>All-Time Revenue:</b> ${fmtNum(totalRevRes?.total_rev)} MMK\n` +
-        `• <b>Total Completed Sales:</b> ${fmtNum(totalRevRes?.total_orders)}` +
-        `</blockquote>\n\n` +
-        `${e("STOCK", "📦")} <b>Key Inventory (Stock)</b>\n` +
-        `<blockquote>` +
-        `• <b>50GB Keys:</b> ${fmtNum(stockMap["50gb"])} Available\n` +
-        `• <b>100GB Keys:</b> ${fmtNum(stockMap["100gb"])} Available\n` +
-        `• <b>250GB Keys:</b> ${fmtNum(stockMap["250gb"])} Available ${stockMap["250gb"] <= 3 ? "⚠️️" : ""}\n` +
-        `• <b>Free Test Keys:</b> ${fmtNum(stockMap["test"])} Available` +
-        `</blockquote>\n\n` +
-        `${e("USERS", "👥")} <b>Users & Security</b>\n` +
-        `<blockquote>` +
-        `• <b>Total Registered:</b> ${fmtNum(totalUsersRes?.count)}\n` +
-        `• <b>Active Key Users:</b> ${fmtNum(activeKeysRes?.count)}\n` +
-        `• <b>Suspended/Banned:</b> ${fmtNum(bannedUsersRes?.count)}` +
-        `</blockquote>\n\n` +
-        `${e("CLOCK", "⏳")} <b>Audit Queue:</b> ${fmtNum(pendingAuditRes?.count)} Pending Slips\n` +
-        `<b>━━━━━━━━━━━━━━━━━━━━</b>\n` +
-        `${e("BTN_REFRESH", "🕒")} <i>Last updated: ${nowStr}</i>`;
-
-      await tg(env, "editMessageText", {
-        chat_id: cb.message.chat.id,
-        message_id: cb.message.message_id,
-        text: updatedText,
-        parse_mode: "HTML",
-        reply_markup: {
-          inline_keyboard: [
-            [{ text: "🔄 Refresh Stats", callback_data: "admin_refresh_stats" }]
-          ]
-        }
-      });
-      await tg(env, "answerCallbackQuery", { callback_query_id: cb.id, text: "Stats updated!" });
-      return;
+  if (stockGroupId && chatId === stockGroupId && data === "admin_refresh_stock") {
+    const counts = await env.DB.prepare("SELECT category, COUNT(*) as count FROM keys WHERE is_used = 0 GROUP BY category").all();
+    let stockMap = { test: 0, "50gb": 0, "100gb": 0, "250gb": 0 };
+    if (counts.results) {
+      counts.results.forEach(r => { stockMap[r.category] = r.count; });
     }
 
+    const stockMsg = 
+      `${e("STATUS", "📊")} <b>Real-Time Key Stock Status</b>\n` +
+      `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
+      `• ${e("FREEBIES", "🎁")} Free Test Keys: <b>${stockMap.test}</b> items\n` +
+      `• ${e("DOT", "🔹")} 50 GB Keys: <b>${stockMap["50gb"]}</b> items\n` +
+      `• ${e("DOT", "🔹")} 100 GB Keys: <b>${stockMap["100gb"]}</b> items\n` +
+      `• ${e("DOT", "🔹")} 250 GB Keys: <b>${stockMap["250gb"]}</b> items\n`;
+
+    await editMsg(stockMsg, KB.getStockRefreshKeyboard());
+    return;
+  }
 
   // --- B. PAYMENT GROUP STATS REFRESH ---
   if (paymentGroupId && chatId === paymentGroupId && data === "admin_refresh_stats") {
-    const totalRevenueRes = await env.DB.prepare(
-      "SELECT SUM(price) as total_rev, COUNT(*) as total_sales FROM orders"
-    ).first();
-    const totalUsersRes = await env.DB.prepare(
-      "SELECT COUNT(*) as count FROM users"
-    ).first();
+    const chatMember = await tg(env, "getChatMember", {
+      chat_id: chatId,
+      user_id: userId
+    });
+    if (!["creator", "administrator"].includes(chatMember?.result?.status)) {
+      await tg(env, "answerCallbackQuery", {
+        callback_query_id: callbackId,
+        text: "⚠️ Admins only!",
+        show_alert: true
+      });
+      return;
+    }
 
-    const totalRev = totalRevenueRes?.total_rev || 0;
-    const totalSales = totalRevenueRes?.total_sales || 0;
-    const totalUsers = totalUsersRes?.count || 0;
+    const totalRevRes = await env.DB.prepare("SELECT SUM(price) as total_rev, COUNT(*) as total_orders FROM orders WHERE category != 'test'").first();
+    const todayRes = await env.DB.prepare("SELECT SUM(price) as today_rev, COUNT(*) as today_orders FROM orders WHERE category != 'test' AND date(created_at, '+6 hours 30 minutes') = date('now', '+6 hours 30 minutes')").first();
+    const totalUsersRes = await env.DB.prepare("SELECT COUNT(*) as count FROM users").first();
+    const bannedUsersRes = await env.DB.prepare("SELECT COUNT(*) as count FROM users WHERE is_banned = 1").first();
+    const activeKeysRes = await env.DB.prepare("SELECT COUNT(DISTINCT user_id) as count FROM orders WHERE expires_at > datetime('now')").first();
+    
+    const stockRes = await env.DB.prepare("SELECT category, COUNT(*) as count FROM keys WHERE is_used = 0 GROUP BY category").all();
+    const stockMap = { test: 0, "50gb": 0, "100gb": 0, "250gb": 0 };
+    if (stockRes?.results) {
+      for (const row of stockRes.results) {
+        if (stockMap.hasOwnProperty(row.category)) stockMap[row.category] = row.count;
+      }
+    }
+    const pendingAuditRes = await env.DB.prepare("SELECT COUNT(*) as count FROM users WHERE pending_topup_amount > 0").first();
 
-    const statsMsg = 
-      `${e("STATUS", "📊")} <b>Store Analytics & Revenue Report (Refreshed)</b>\n` +
+    const fmtNum = (n) => Number(n || 0).toLocaleString();
+    const nowStr = new Date().toLocaleString("en-US", {
+      day: "numeric", month: "short", year: "numeric",
+      hour: "2-digit", minute: "2-digit", hour12: true,
+      timeZone: "Asia/Yangon"
+    });
+
+    const updatedText = 
+      `${e("STATUS", "📊")} <b>Store Analytics & Executive Report</b>\n` +
       `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
-      `<blockquote>\n` +
-      `• ${e("BALANCE", "💰")} Total Revenue: <b>${totalRev.toLocaleString()} MMK</b>\n` +
-      `• ${e("STOCK", "📦")} Total Sales: <b>${totalSales}</b>\n` +
-      `• ${e("USERS", "👥")} Total Users: <b>${totalUsers}</b>\n\n` +
+      `${e("BALANCE", "💰")} <b>Revenue & Performance</b>\n` +
+      `<blockquote>` +
+      `• <b>Today:</b> ${fmtNum(todayRes?.today_rev)} MMK (${fmtNum(todayRes?.today_orders)} Orders)\n` +
+      `• <b>All-Time Revenue:</b> ${fmtNum(totalRevRes?.total_rev)} MMK\n` +
+      `• <b>Total Completed Sales:</b> ${fmtNum(totalRevRes?.total_orders)}` +
       `</blockquote>\n\n` +
-      `<i>Last updated: ${MSG.formatMyanmarTime(new Date())}</i>`;
+      `${e("STOCK", "📦")} <b>Key Inventory (Stock)</b>\n` +
+      `<blockquote>` +
+      `• <b>50GB Keys:</b> ${fmtNum(stockMap["50gb"])} Available\n` +
+      `• <b>100GB Keys:</b> ${fmtNum(stockMap["100gb"])} Available\n` +
+      `• <b>250GB Keys:</b> ${fmtNum(stockMap["250gb"])} Available ${stockMap["250gb"] <= 3 ? "⚠️" : ""}\n` +
+      `• <b>Free Test Keys:</b> ${fmtNum(stockMap["test"])} Available` +
+      `</blockquote>\n\n` +
+      `${e("USERS", "👥")} <b>Users & Security</b>\n` +
+      `<blockquote>` +
+      `• <b>Total Registered:</b> ${fmtNum(totalUsersRes?.count)}\n` +
+      `• <b>Active Key Users:</b> ${fmtNum(activeKeysRes?.count)}\n` +
+      `• <b>Suspended/Banned:</b> ${fmtNum(bannedUsersRes?.count)}` +
+      `</blockquote>\n\n` +
+      `${e("CLOCK", "⏳")} <b>Audit Queue:</b> ${fmtNum(pendingAuditRes?.count)} Pending Slips\n` +
+      `<b>━━━━━━━━━━━━━━━━━━━━</b>\n` +
+      `${e("BTN_REFRESH", "🕒")} <i>Last updated: ${nowStr}</i>`;
 
-    await editMsg(statsMsg, KB.getStatsRefreshKeyboard());
+    await editMsg(updatedText, {
+      inline_keyboard: [
+        [{ text: "🔄 Refresh Stats", callback_data: "admin_refresh_stats" }]
+      ]
+    });
     return;
   }
 
@@ -746,7 +709,7 @@ async function handleCallback(cb, env) {
 
       await tg(env, "sendMessage", {
         chat_id: targetUserId,
-        text: `${e("SUCCESS", "🎉")} <b>Deposit Approved!</b>\n\nYour wallet has been credited with <b>+${amount.toLocaleString()} MMK</b>.\nYou can now purchase Outline VPN keys anytime! ${e("STAR", "✨")} `,
+        text: `${e("SUCCESS", "🎉")} <b>Deposit Approved!</b>\n\nYour wallet has been credited with <b>+${amount.toLocaleString()} MMK</b>.\nYou can now purchase Outline VPN keys anytime! ${e("STAR", "✨")}`,
         parse_mode: "HTML",
         reply_markup: KB.getMainKeyboard(),
       });
@@ -809,47 +772,43 @@ async function handleCallback(cb, env) {
     return;
   }
 
-    // Balance
-    if (data === "menu_balance") {
-      // ၁။ User ဝယ်ယူခဲ့သမျှ စုစုပေါင်းကုန်ကျငွေကို တွက်ထုတ်ခြင်း
-      const totalSpent = Number(user.total_spent || 0);
+  // Balance
+  if (data === "menu_balance") {
+    const totalSpent = Number(user.total_spent || 0);
 
-      // ၂။ နောက်ဆုံးငွေဖြည့်ခဲ့သည့် အချိန်
-      let lastDepositText = "No top-up yet";
-      if (user.last_topup_at) {
-        // "2026-09-29 21:29:00" ပုံစံမှ "29/09/2026, 21:29:00" ပုံစံသို့ ပြောင်းလဲခြင်း
-        const parts = String(user.last_topup_at).split(" ");
-        if (parts.length === 2) {
-          const [y, m, d] = parts[0].split("-");
-          lastDepositText = `${d}/${m}/${y}, ${parts[1]}`;
-        } else {
-          lastDepositText = user.last_topup_at;
-        }
+    let lastDepositText = "No top-up yet";
+    if (user.last_topup_at) {
+      const parts = String(user.last_topup_at).split(" ");
+      if (parts.length === 2) {
+        const [y, m, d] = parts[0].split("-");
+        lastDepositText = `${d}/${m}/${y}, ${parts[1]}`;
+      } else {
+        lastDepositText = user.last_topup_at;
       }
-
-      const balMsg = 
-        `${e("BALANCE", "💳")} <b>My Wallet Balance</b>\n` +
-        `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
-        `<blockquote>` +
-        `• ${e("PROFILE", "👤")} Account: <b>${cb.from.first_name || ""}</b>\n` +
-        `• ${e("USER_ID", "🆔")} Telegram ID: <code>${user.telegram_id}</code>\n` +
-        `</blockquote>\n\n` +
-        `<blockquote>` +
-        `• ${e("BALANCE", "💰")} Current Balance: <b>${balance.toLocaleString()} MMK</b>\n` +
-        `• ${e("SHOP", "🛍")} Total Spent: <b>${totalSpent.toLocaleString()} MMK</b>\n` +
-        `• ${e("DATE", "🕒")} Last Deposit: <i>${lastDepositText}</i>` +
-        `</blockquote>\n\n` +
-        `<i>Need more credits? Tap Deposit to top up your wallet.</i> ${e("DOWN", "🔻")}`;
-
-      await editMsg(balMsg, {
-        inline_keyboard: [
-          [makeBtn("Deposit", "callback_data", "menu_topup", null, "BTN_DEPOSIT")],
-          [makeBtn("Back to Home", "callback_data", "menu_home", null, "BTN_HOME")]
-        ]
-      });
-      return;
     }
 
+    const balMsg = 
+      `${e("BALANCE", "💳")} <b>My Wallet Balance</b>\n` +
+      `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
+      `<blockquote>` +
+      `• ${e("PROFILE", "👤")} Account: <b>${cb.from.first_name || ""}</b>\n` +
+      `• ${e("USER_ID", "🆔")} Telegram ID: <code>${user.telegram_id}</code>\n` +
+      `</blockquote>\n\n` +
+      `<blockquote>` +
+      `• ${e("BALANCE", "💰")} Current Balance: <b>${balance.toLocaleString()} MMK</b>\n` +
+      `• ${e("SHOP", "🛍")} Total Spent: <b>${totalSpent.toLocaleString()} MMK</b>\n` +
+      `• ${e("DATE", "🕒")} Last Deposit: <i>${lastDepositText}</i>` +
+      `</blockquote>\n\n` +
+      `<i>Need more credits? Tap Deposit to top up your wallet.</i> ${e("DOWN", "🔻")}`;
+
+    await editMsg(balMsg, {
+      inline_keyboard: [
+        [makeBtn("Deposit", "callback_data", "menu_topup", null, "BTN_DEPOSIT")],
+        [makeBtn("Back to Home", "callback_data", "menu_home", null, "BTN_HOME")]
+      ]
+    });
+    return;
+  }
 
   // Profile Orders
   if (data.startsWith("menu_profile_p_")) {
@@ -1072,7 +1031,7 @@ async function handleCallback(cb, env) {
     }
 
     const keyItem = await env.DB.prepare(
-      "SELECT id, access_key FROM keys WHERE category = ? LIMIT 1"
+      "SELECT id, access_key FROM keys WHERE category = ? AND is_used = 0 LIMIT 1"
     ).bind(category).first();
 
     if (!keyItem) {
@@ -1104,7 +1063,7 @@ async function handleCallback(cb, env) {
       ]
     });
 
-    // 📢 ၁။ Sales Proof Channel သို့ အရောင်းပြေစာ ပို့ခြင်း
+    // 📢 Sales Proof Channel သို့ အရောင်းပြေစာ ပို့ခြင်း
     const salesChannelId = String(env.SALES_CHANNEL_ID || "").trim();
     if (salesChannelId) {
       try {
@@ -1121,12 +1080,11 @@ async function handleCallback(cb, env) {
       }
     }
 
-    // ⚠️ ၂။ Stock Group သို့ လက်ကျန်သတိပေး Noti ပို့ခြင်း (လက်ကျန် ၃ ခုနှင့် အောက်ဆိုလျှင်)
-    const stockGroupId = String(env.STOCK_GROUP_ID || "").trim();
+    // ⚠️ Stock Group သို့ လက်ကျန်သတိပေး Noti ပို့ခြင်း
     if (stockGroupId) {
       try {
         const countRow = await env.DB.prepare(
-          "SELECT COUNT(*) as count FROM keys WHERE category = ?"
+          "SELECT COUNT(*) as count FROM keys WHERE category = ? AND is_used = 0"
         ).bind(category).first();
         
         const remainingStock = Number(countRow?.count || 0);
@@ -1151,69 +1109,71 @@ async function handleCallback(cb, env) {
     return;
   }
 
-    // Free Test Key Menu Handler
-    if (data === "menu_test") {
-      // ၁။ User က Test Key ယူထားပြီးသား ရှိမရှိ စစ်ဆေးခြင်း
-      const existingTest = await env.DB.prepare(
-        "SELECT * FROM orders WHERE user_id = ? AND category = 'test' ORDER BY created_at DESC LIMIT 1"
-      ).bind(user.telegram_id).first();
+  // Free Test Key Menu Handler (menu_test သို့မဟုတ် menu_test_key_info နှစ်ခုလုံး အဆင်ပြေစေရန်)
+  if (data === "menu_test" || data === "menu_test_key_info") {
+    const existingTest = await env.DB.prepare(
+      "SELECT * FROM orders WHERE user_id = ? AND category = 'test' ORDER BY created_at DESC LIMIT 1"
+    ).bind(user.telegram_id).first();
 
-      if (existingTest) {
-        // သက်တမ်းတွက်ချက်ခြင်း (ရက် ၃၀ Cooldown သတ်မှတ်ထားလျှင်)
-        const claimedDate = new Date(existingTest.created_at);
-        const nextAvailDate = new Date(claimedDate.getTime() + (30 * 24 * 60 * 60 * 1000));
-        const now = new Date();
+    if (existingTest) {
+      const claimedDate = new Date(existingTest.created_at);
+      const nextAvailDate = new Date(claimedDate.getTime() + (30 * 24 * 60 * 60 * 1000));
+      const now = new Date();
 
-        // အကယ်၍ ရက် ၃၀ မပြည့်သေးပါက ဒုတိယပုံစံအတိုင်း ပြသမည်
-        if (now.getTime() < nextAvailDate.getTime()) {
-          const diffMs = nextAvailDate.getTime() - now.getTime();
-          const daysLeft = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-          const hoursLeft = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      if (now.getTime() < nextAvailDate.getTime()) {
+        const diffMs = nextAvailDate.getTime() - now.getTime();
+        const daysLeft = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+        const hoursLeft = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
 
-          // ရက်စွဲ format ပြင်ဆင်ခြင်း
-          const fmt = (d) => d.toLocaleString("en-US", { 
-            day: "numeric", month: "short", year: "numeric", 
-            hour: "2-digit", minute: "2-digit", hour12: true, 
-            timeZone: "Asia/Yangon" 
-          });
-
-          const claimedText = 
+        const claimedText = 
           `${e("WARNING", "⚠️")} <b>Test Key Already Claimed!</b>\n` +
           `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
           `<blockquote>` +
-          `• ${e("DATE", "📅")} Claimed On: <b>${MSG.formatMyanmarTime(lastClaim)}</b>\n` +
-          `• ${e("CLOCK", "⏳")} Next Available: <b>${MSG.formatMyanmarTime(nextDate)}</b>` +
+          `• ${e("DATE", "📅")} Claimed On: <b>${MSG.formatMyanmarTime(claimedDate)}</b>\n` +
+          `• ${e("CLOCK", "⏳")} Next Available: <b>${MSG.formatMyanmarTime(nextAvailDate)}</b>` +
           `</blockquote>\n\n` +
-          `<i>You can claim another test key in <b>${days} days and ${hours} hours</b>.</i>`;
+          `<i>You can claim another test key in <b>${daysLeft} days and ${hoursLeft} hours</b>.</i>`;
 
-          await editMsg(claimedText, {
+        await editMsg(claimedText, {
+          inline_keyboard: [
+            [makeBtn("View My Test Key", "callback_data", `view_ord_${existingTest.id}_1`, null, "BTN_KEY")],
+            [makeBtn("Back to Home", "callback_data", "menu_home", null, "BTN_HOME")]
+          ]
+        });
+        return;
+      }
+    }
+
+    await editMsg(MSG.getTestKeyIntroMessage(), KB.getTestKeyKeyboard());
+    return;
+  }
+
+  // Claim Test Key Execution (exec_claim_test_key သို့မဟုတ် claim_free_test နှစ်ခုလုံးကို support လုပ်သည်)
+  if (data === "exec_claim_test_key" || data === "claim_free_test") {
+    // Cooldown ထပ်မံစစ်ဆေးခြင်း
+    const existingTest = await env.DB.prepare(
+      "SELECT * FROM orders WHERE user_id = ? AND category = 'test' ORDER BY created_at DESC LIMIT 1"
+    ).bind(user.telegram_id).first();
+
+    if (existingTest) {
+      const claimedDate = new Date(existingTest.created_at);
+      const nextAvailDate = new Date(claimedDate.getTime() + (30 * 24 * 60 * 60 * 1000));
+      if (new Date().getTime() < nextAvailDate.getTime()) {
+        await editMsg(
+          `${e("WARNING", "⚠️")} <b>Test Key Already Claimed!</b>\nPlease wait until your trial cooldown period expires.`,
+          {
             inline_keyboard: [
               [makeBtn("View My Test Key", "callback_data", `view_ord_${existingTest.id}_1`, null, "BTN_KEY")],
               [makeBtn("Back to Home", "callback_data", "menu_home", null, "BTN_HOME")]
             ]
-          });
-          return;
-        }
+          }
+        );
+        return;
       }
-
-      // မယူရသေးပါက ပုံမှန် Claim ရမည့် မိတ်ဆက်စာမျက်နှာကို ပြသမည်
-      await editMsg(MSG.getTestKeyIntroMessage(), KB.getTestKeyKeyboard());
-      return;
     }
 
-    await editMsg(MSG.getTestKeyInfoMessage(), {
-      inline_keyboard: [
-        [makeBtn("Claim Free Test Key", "callback_data", "exec_claim_test_key", null, "BTN_FREEBIES")],
-        [makeBtn("Back to Home", "callback_data", "menu_home", null, "BTN_HOME")]
-      ]
-    });
-    return;
-}
-
-  // Claim Test Key Execution
-  if (data === "exec_claim_test_key") {
     const testKeyItem = await env.DB.prepare(
-      "SELECT id, access_key FROM keys WHERE category = 'test' LIMIT 1"
+      "SELECT id, access_key FROM keys WHERE category = 'test' AND is_used = 0 LIMIT 1"
     ).first();
 
     if (!testKeyItem) {
@@ -1228,6 +1188,12 @@ async function handleCallback(cb, env) {
       );
       return;
     }
+
+    // Key ကို stock မှ delete လုပ်ပြီး order record ထည့်သွင်းခြင်း
+    await env.DB.batch([
+      env.DB.prepare("DELETE FROM keys WHERE id = ?").bind(testKeyItem.id),
+      env.DB.prepare("INSERT INTO orders (user_id, category, access_key, price) VALUES (?, 'test', ?, 0)").bind(userId, testKeyItem.access_key)
+    ]);
 
     await editMsg(
       `${e("SUCCESS", "🎉")} <b>Your Free Test Key is Ready!</b>\n` +
@@ -1244,7 +1210,11 @@ async function handleCallback(cb, env) {
 
   // View Existing Test Key
   if (data === "view_claimed_test_key") {
-    const keyStr = user.current_test_key || "Key record not found.";
+    const existingTest = await env.DB.prepare(
+      "SELECT access_key FROM orders WHERE user_id = ? AND category = 'test' ORDER BY created_at DESC LIMIT 1"
+    ).bind(userId).first();
+
+    const keyStr = existingTest?.access_key || "Key record not found.";
     await editMsg(
       `${e("KEY", "🔑")} <b>My Active Free Test Key</b>\n` +
       `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
