@@ -395,7 +395,7 @@ async function handleMessage(msg, env) {
         parse_mode: "HTML",
         reply_markup: {
           inline_keyboard: [
-            [{ text: "🔄 Refresh Stats", callback_data: "admin_refresh_stats" }]
+           [makeBtn("Refresh Status", "callback_data", "admin_refresh_stats", "primary", "BTN_REFRESH")]
           ]
         }
       });
