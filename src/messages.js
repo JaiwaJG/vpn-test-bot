@@ -28,7 +28,7 @@ export function formatMyanmarTime(dateObj) {
 // 1. Welcome Message
 export function getWelcomeMessage(firstName) {
   return (
-    `${e("CROWN", "👑")} <b>Welcome to ${CONFIG.STORE_NAME}!</b>\n` +
+    `${e("CROWN", "👑")} <b>Welcome to ${CONFIG.STORE_NAME}</b>\n` +
     `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
     `Hello <b>${firstName || "Customer"}</b> ${e("STAR", "✨")}\n\n` +
     `We provide ultra-fast, stable, and encrypted <b>Outline VPN Access Keys</b>. Instant automated delivery after purchase.\n\n` +
@@ -82,7 +82,7 @@ export function getPaymentInfoMessage(amount) {
     `${e("UABPAY", "📱")} <b>UABPay:</b> <code>${CONFIG.PAYMENT.PHONE}</code> <b>${CONFIG.PAYMENT.NAME}</b>\n` +
     `</blockquote>\n\n` +
     `${e("WARNING", "⚠️")} <b>Important Transfer Rules:</b>\n` +
-    `• Do <b>NOT</b> write VPN, Outline, or Store names in the transaction note.\n` +
+    `• Do <b>NOT</b> write <b>VPN</b>, <b>Outline</b>, or <b>Store names</b> in the transaction note.\n` +
     `• Send the transfer <b>Screenshot/Slip</b> directly into this chat.\n` +
     `• Fraudulent/fake slips will result in an immediate permanent ban.\n\n` +
     `${e("SLIP", "🧾")} <i>Send your transaction screenshot/slip now:</i>`

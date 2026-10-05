@@ -964,19 +964,21 @@ async function handleCallback(cb, env) {
       `${e("TERMS", "📜")} <b>Terms of Service & Store Policies</b>\n` +
       `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
       `Please read and understand our store policies before proceeding:\n\n` +
-      `<blockquote>` +
-      `1. <b>Strict No-Refund Policy:</b>\n` +
-      `• All wallet top-ups and key purchases are final. Refunds will NOT be issued under any circumstances.\n\n` +
-      `2. <b>Server Downtime & Support:</b>\n` +
-      `• In case of server interruption or protocol blockages, our team will investigate and restore the access nodes within <b>24 hours</b>.\n\n` +
-      `3. <b>Payment Note Instructions:</b>\n` +
-      `• Strictly do <b>NOT</b> write "VPN", "Key", "Outline", or store-related words in the transaction note/remark when transferring via KPay or AYAPay.\n` +
-      `• Any transaction violating this rule will be rejected immediately and balance will <b>NOT</b> be added.\n\n` +
-      `4. <b>Fraud Prevention & Permanent Ban:</b>\n` +
-      `• Submitting fake, altered, reused, or fraudulent transaction slips will lead to an immediate and permanent <b>Account & Telegram ID Ban</b> across all our bots and services.\n\n` +
-      `5. <b>Fair Usage:</b>\n` +
-      `• Purchased Outline keys are for single-device/personal use only. Reselling or public sharing is strictly prohibited.` +
-      `</blockquote>\n\n` +
+      `<b>1. Strict No-Refund Policy:</b>\n` +
+      `<blockquote>• All wallet top-ups and key purchases are final and non-refundable under any circumstances.</blockquote>\n` +
+      `<b>2. Payment Transfer Rules:</b>\n` +
+      `<blockquote>• Supported Methods: <b>KBZPay, AYAPay, UABPay</b>.\n` +
+      `• <b>Strictly leave the transfer note/remark EMPTY</b>. Do NOT write "VPN", "Key", "Bot", or any related words.\n` +
+      `• Violating this rule will result in immediate rejection, and funds will NOT be credited.</blockquote>\n` +
+      `<b>3. Fraud Prevention & Zero Tolerance:</b>\n` +
+      `<blockquote>• Submitting altered, fake, reused, or forged payment slips will result in an immediate and permanent BAN of your Telegram ID and Account across all our services without warning.</blockquote>\n` +
+      `<b>4. Fair Usage Policy:</b>\n` +
+      `<blockquote>• Keys are optimized for personal, non-abusive usage.\n` +
+      `• Reselling, public sharing, torrent abuse, or malicious activities that degrade server performance for others are strictly prohibited. Accounts violating fair use may be revoked.</blockquote>\n` +
+      `<b>5. Service Uptime & Maintenance:</b>\n` +
+      `<blockquote>• In the event of network disruption, IP filtering, or server downtime, our team will investigate and restore nodes as quickly as possible (typically within 24 hours).</blockquote>\n` +
+      `<b>6. Final Authority:</b>\n` +
+      `<blockquote>• In the event of any disputes, transaction discrepancies, or policy enforcement, the final decision rests solely with the Admin Team.</blockquote>\n` +
       `${e("WARNING", "⚠️")} <b>By using our bot and depositing funds, you fully agree to comply with all the terms above.</b>`;
     await editMsg(termsMsg, {
       inline_keyboard: [[makeBtn("Main Menu", "callback_data", "menu_home", null, "BTN_HOME")]]
