@@ -41,9 +41,9 @@ export function getBuyPackagesKeyboard() {
 export function getTopupKeyboard() {
   return {
     inline_keyboard: [
-      [makeBtn("2,500 MMK (50 GB Plan)", "callback_data", "topup_amt_2500", "success", "BTN_DEPOSIT")],
-      [makeBtn("4,500 MMK (100 GB Plan)", "callback_data", "topup_amt_4500", "success", "BTN_DEPOSIT")],
-      [makeBtn("10,500 MMK (250 GB Plan)", "callback_data", "topup_amt_10500", "success", "BTN_DEPOSIT")],
+      [makeBtn("2,500 MMK", "callback_data", "topup_amt_2500", "success", "BTN_DEPOSIT")],
+      [makeBtn("4,500 MMK", "callback_data", "topup_amt_4500", "success", "BTN_DEPOSIT")],
+      [makeBtn("10,500 MMK", "callback_data", "topup_amt_10500", "success", "BTN_DEPOSIT")],
       [makeBtn("Custom Deposit Amount", "callback_data", "topup_custom", "primary", "BTN_CUSTOM")],
       [makeBtn("Back to Home", "callback_data", "menu_home", null, "BTN_HOME")]
     ]

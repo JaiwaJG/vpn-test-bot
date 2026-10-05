@@ -969,6 +969,7 @@ async function handleCallback(cb, env) {
       `<b>2. Payment Transfer Rules:</b>\n` +
       `<blockquote>• Supported Methods: <b>KBZPay, AYAPay, UABPay</b>.\n` +
       `• <b>Strictly leave the transfer note/remark EMPTY</b>. Do NOT write "VPN", "Key", "Bot", or any related words.\n` +
+      `• <b>Processing Time:</b> Transactions are typically verified within <b>5 minutes to a maximum of 24 hours</b>. Wallet balance will be credited immediately once approved by the Admin Team.\n` +
       `• Violating this rule will result in immediate rejection, and funds will NOT be credited.</blockquote>\n` +
       `<b>3. Fraud Prevention & Zero Tolerance:</b>\n` +
       `<blockquote>• Submitting altered, fake, reused, or forged payment slips will result in an immediate and permanent BAN of your Telegram ID and Account across all our services without warning.</blockquote>\n` +

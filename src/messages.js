@@ -54,12 +54,12 @@ export function getPackageListMessage(balance) {
     `${e("DOT", "🔹")} <b>50 GB Plan (30 Days)</b>\n` +
     `• Data: 50 GB | High-Speed Singapore\n` +
     `• Price: <b>2,500 MMK</b>\n` +
-    `</blockquote>\n\n` +
+    `</blockquote>\n` +
     `<blockquote>` +
     `${e("DOT", "🔹")} <b>100 GB Plan (35 Days)</b>\n` +
     `• Data: 100 GB | High-Speed Singapore\n` +
     `• Price: <b>4,500 MMK</b> (Most Popular)\n` +
-    `</blockquote>\n\n` +
+    `</blockquote>\n` +
     `<blockquote>` +
     `${e("DOT", "🔹")} <b>250 GB Plan (75 Days)</b>\n` +
     `• Data: 250 GB | High-Speed Singapore\n` +
