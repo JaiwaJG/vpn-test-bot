@@ -26,23 +26,24 @@ export default {
     try {
       const now = new Date();
 
-      // --- အပိုင်း ၁။ သက်တမ်းကုန်သွားသော TEST KEY များကို ဖျက်ပြီး Noti ပို့ခြင်း ---
+      // --- အပိုင်း ၁။ သက်တမ်းကုန်သွားသော TEST KEY များကို Noti ပို့ခြင်း (Database မှ ချက်ချင်းမဖျက်ဘဲ reminded_exp သာ မှတ်သားမည်) ---
       const expiredTests = await env.DB.prepare(`
         SELECT orders.*, users.first_name 
         FROM orders 
         JOIN users ON orders.user_id = users.telegram_id
-        WHERE orders.category = 'test'
+        WHERE orders.category = 'test' AND orders.reminded_exp = 0
       `).all();
 
       for (const order of expiredTests.results || []) {
         const pkgConfig = CONFIG.PACKAGES[order.category] || { days: 1 };
         const totalDays = pkgConfig.days || 1;
         
-        const createdAt = new Date(order.created_at);
+        const createdAt = parseDbDate(order.created_at);
         const expireAt = new Date(createdAt.getTime() + totalDays * 24 * 60 * 60 * 1000);
 
         if (now.getTime() >= expireAt.getTime()) {
-          await env.DB.prepare("DELETE FROM orders WHERE id = ?").bind(order.id).run();
+          // မှတ်တမ်းမပျက်စေရန် မဖျက်ဘဲ reminded_exp = 1 အဖြစ်သာ update လုပ်ပါမည်
+          await env.DB.prepare("UPDATE orders SET reminded_exp = 1 WHERE id = ?").bind(order.id).run();
 
           const buyerName = order.first_name || "Customer";
           const expiredMsg = MSG.getTestKeyExpiredMessage(buyerName);
@@ -61,6 +62,13 @@ export default {
         }
       }
 
+      // --- ၃၀ ရက် ပြည့်သွားသော Test Key မှတ်တမ်းအဟောင်းများကိုသာ Database မှ အပြီးသတ်ရှင်းထုတ်ခြင်း ---
+      await env.DB.prepare(`
+        DELETE FROM orders 
+        WHERE category = 'test' 
+        AND datetime(created_at, '+30 days') <= datetime('now')
+      `).run();
+
       // --- အပိုင်း ၂။ ပုံမှန် Key များ ၂ ရက်အလို သတိပေးချက် ပို့ခြင်း ---
       const { results } = await env.DB.prepare(`
         SELECT orders.*, users.first_name 
@@ -73,7 +81,7 @@ export default {
         const pkgConfig = CONFIG.PACKAGES[order.category];
         const totalDays = pkgConfig?.days || 30;
 
-        const createdAt = new Date(order.created_at);
+        const createdAt = parseDbDate(order.created_at);
         const expireAt = new Date(createdAt.getTime() + totalDays * 24 * 60 * 60 * 1000);
 
         const diffMs = expireAt.getTime() - now.getTime();
@@ -135,6 +143,13 @@ function isMatchChatId(chatId, targetGroupId) {
   const a = String(chatId).replace(/^-100/, "").replace(/^-/, "").trim();
   const b = String(targetGroupId).replace(/^-100/, "").replace(/^-/, "").trim();
   return a === b;
+}
+
+// SQLite Timestamp အား တိကျသေချာသော Date Object အဖြစ် ပြောင်းလဲပေးသည့် Helper
+function parseDbDate(dateStr) {
+  if (!dateStr) return new Date();
+  const s = String(dateStr).trim();
+  return new Date(s.includes("T") ? s : s.replace(" ", "T") + (s.endsWith("Z") ? "" : "Z"));
 }
 
 // Admin ဟုတ်မဟုတ် စစ်ဆေးခြင်း
@@ -844,7 +859,7 @@ async function handleCallback(cb, env) {
     ).bind(userId, pageSize, offset).all();
 
     const orders = ordersRes.results || [];
-    const regDate = user.created_at ? MSG.formatMyanmarTime(new Date(user.created_at.replace(" ", "T") + "Z")) : "N/A";
+    const regDate = user.created_at ? MSG.formatMyanmarTime(parseDbDate(user.created_at)) : "N/A";
 
     let profMsg = 
       `${e("PROFILE", "👤")} <b>Your Account Profile</b>\n` +
@@ -886,7 +901,7 @@ async function handleCallback(cb, env) {
     }
 
     const pkgInfo = CONFIG.PACKAGES[order.category] || { days: 30, gb: order.category };
-    const buyDate = new Date(order.created_at.replace(" ", "T") + "Z");
+    const buyDate = parseDbDate(order.created_at);
     const expiryDate = new Date(buyDate.getTime() + pkgInfo.days * 24 * 60 * 60 * 1000);
     const now = new Date();
 
@@ -1133,14 +1148,14 @@ async function handleCallback(cb, env) {
     return;
   }
 
-  // Free Test Key Menu Handler (Profile မရောဘဲ သီးသန့်ကြည့်ရှုရန် view_claimed_test_key ချိတ်ထားပါသည်)
+  // Free Test Key Menu Handler
   if (data === "menu_test" || data === "menu_test_key_info") {
     const existingTest = await env.DB.prepare(
       "SELECT * FROM orders WHERE user_id = ? AND category = 'test' ORDER BY created_at DESC LIMIT 1"
     ).bind(userId).first();
 
     if (existingTest) {
-      const claimedDate = new Date(existingTest.created_at);
+      const claimedDate = parseDbDate(existingTest.created_at);
       const nextAvailDate = new Date(claimedDate.getTime() + (30 * 24 * 60 * 60 * 1000));
       const now = new Date();
 
@@ -1179,7 +1194,7 @@ async function handleCallback(cb, env) {
     ).bind(userId).first();
 
     if (existingTest) {
-      const claimedDate = new Date(existingTest.created_at);
+      const claimedDate = parseDbDate(existingTest.created_at);
       const nextAvailDate = new Date(claimedDate.getTime() + (30 * 24 * 60 * 60 * 1000));
       if (new Date().getTime() < nextAvailDate.getTime()) {
         await editMsg(
