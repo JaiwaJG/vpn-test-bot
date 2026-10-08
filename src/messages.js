@@ -47,21 +47,21 @@ export function getWelcomeMessage(firstName) {
 // 2. Package List
 export function getPackageListMessage(balance) {
   return (
-    `${e("SHOP", "🛍")} <b>Available Outline VPN Packages</b>\n` +
+    `${e("SHOP", "🛍")} <b>Available Outline VPN Key Packages</b>\n` +
     `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
     `${e("BALANCE", "💰")} <b>My Balance:</b> <code>${balance.toLocaleString()} MMK</code>\n\n` +
     `<blockquote>` +
-    `${e("DOT", "🔹")} <b>50 GB Plan (30 Days)</b>\n` +
+    `${e("OUTLINE", "🔹")} <b>50 GB Plan (30 Days)</b>\n` +
     `• Data: 50 GB | High-Speed Singapore\n` +
     `• Price: <b>2,500 MMK</b>\n` +
     `</blockquote>\n` +
     `<blockquote>` +
-    `${e("DOT", "🔹")} <b>100 GB Plan (35 Days)</b>\n` +
+    `${e("OUTLINE", "🔹")} <b>100 GB Plan (35 Days)</b>\n` +
     `• Data: 100 GB | High-Speed Singapore\n` +
     `• Price: <b>4,500 MMK</b> (Most Popular)\n` +
     `</blockquote>\n` +
     `<blockquote>` +
-    `${e("DOT", "🔹")} <b>250 GB Plan (75 Days)</b>\n` +
+    `${e("OUTLINE", "🔹")} <b>250 GB Plan (75 Days)</b>\n` +
     `• Data: 250 GB | High-Speed Singapore\n` +
     `• Price: <b>10,500 MMK</b> (Heavy User)\n` +
     `</blockquote>\n\n` +
