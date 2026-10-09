@@ -8,7 +8,7 @@ export const CONFIG = {
 
   FORCE_JOIN: {
     ENABLED: true,
-    CHANNEL_ID: "@jaiwateam",
+    CHANNEL_ID: "-1003109042473",
     CHANNEL_LINK: "https://t.me/jaiwateam",
   },
 
