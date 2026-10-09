@@ -238,7 +238,7 @@ async function handleMessage(msg, env) {
 
       const param = text.split(" ")[1];
 
-      if (parm && param.startsWith("ref_")) {
+      if (param && param.startsWith("ref_")) {
         const referrerId = parseInt(param.replace("ref_", ""), 10);
         if (!isNaN(referrerId) && referrerId !== user.telegram_id && !user.referred_by) {
           await env.DB.prepare("UPDATE users SET referred_by = ? WHERE telegram_id = ?").bind(referrerId, user.telegram_id).run();
