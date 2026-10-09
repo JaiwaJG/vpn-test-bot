@@ -1,7 +1,16 @@
 export const CONFIG = {
+
   STORE_NAME: "Outline Key Store",
   ADMIN_USERNAME: "JaiwaJG",
   BOT_USERNAME: "jaiwateam_key_bot",
+
+  REFERRAL_PERCENT: 5, // 5% Commission
+
+  FORCE_JOIN: {
+    ENABLED: true,
+    CHANNEL_ID: "@jaiwateam",
+    CHANNEL_LINK: "https://t.me/jaiwateam",
+  },
 
   // 📱 Payment Information
   PAYMENT: {
@@ -44,6 +53,7 @@ export const CONFIG = {
     DOWN: "6057889171568075218",
     UP: "6055562669388210100",
     ANNOUNCE: "4967835134792303324",
+    REFERRAL: "5260730055880876557",
 
     ACTIVE: "5260463209562776385",
     INACTIVE: "5974083768233760323",
@@ -142,3 +152,4 @@ export function makeBtn(title, actionType, actionValue, style = null, emojiIdKey
 
   return btn;
 }
+

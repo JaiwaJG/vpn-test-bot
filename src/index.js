@@ -164,10 +164,27 @@ async function checkIsAdmin(env, chatId, user) {
   return memberData?.ok && ["creator", "administrator"].includes(memberData?.result?.status);
 }
 
+// User သည် သတ်မှတ် Channel ထဲ Join ထားခြင်း ရှိမရှိ စစ်ဆေးခြင်း
+async function checkMustJoin(env, userId) {
+  if (!CONFIG.FORCE_JOIN?.ENABLED) return true;
+  try {
+    const res = await tgJson(env, "getChatMember", {
+      chat_id: CONFIG.FORCE_JOIN.CHANNEL_ID,
+      user_id: userId
+    });
+    if (!res?.ok) return false;
+    const status = res.result?.status;
+    return ["member", "administrator", "creator"].includes(status);
+  } catch (err) {
+    return false;
+  }
+}
+
 // User Record Finder
-async function getOrCreateUser(env, from) {
+async function getOrCreateUser(env, from, referrerId = null) {
   let user = await env.DB.prepare("SELECT * FROM users WHERE telegram_id = ?").bind(from.id).first();
   if (!user) {
+    const validReferrer = (referrerId && Number(referrerId) !== Number(from.id)) ? referrerId : null;
     await env.DB.prepare(
       "INSERT INTO users (telegram_id, username, first_name, balance, is_banned, pending_topup_amount, total_orders) VALUES (?, ?, ?, 0, 0, 0, 0)"
     ).bind(from.id, from.username || "Unknown", from.first_name || "").run();
@@ -205,8 +222,27 @@ async function handleMessage(msg, env) {
 
     if (text.startsWith("/start")) {
       await env.DB.prepare("UPDATE users SET pending_topup_amount = 0 WHERE telegram_id = ?").bind(user.telegram_id).run();
-      
+      // --- 📢 FORCE JOIN CHANNEL CHECK ---
+      const isJoined = await checkMustJoin(env, user.telegram_id);
+      if (!isJoined) {
+        await tg(env, "sendMessage", {
+          chat_id: chatId,
+          text: MSG.getMustJoinMessage(),
+          parse_mode: "HTML",
+          reply_markup: KB.getMustJoinKeyboard(CONFIG.FORCE_JOIN.CHANNEL_LINK),
+        });
+        return;
+      }
+
       const param = text.split(" ")[1];
+
+      if (parm && param.startsWith("ref_")) {
+        const referrerId = parseInt(param.replace("ref_", ""), 10);
+        if (!isNaN(referrerId) && referrerId !== user.telegram_id && !user.referred_by) {
+          await env.DB.prepare("UPDATE users SET referred_by = ? WHERE telegram_id = ?").bind(referrerId, user.telegram_id).run();
+            user.referred_by = referrerId;
+        }
+      }
       if (param === "menu_buy") {
         await tg(env, "sendMessage", {
           chat_id: chatId,
@@ -635,6 +671,47 @@ async function handleCallback(cb, env) {
     });
   }
 
+  // --- 🌟 REFERRAL PROGRAM DASHBOARD ---
+  if (data === "menu_referral") {
+    const countRes = await env.DB.prepare(
+      "SELECT COUNT(*) as count FROM users WHERE referred_by = ?"
+    ).bind(userId).first();
+
+    const userRes = await env.DB.prepare(
+      "SELECT referral_earnings FROM users WHERE telegram_id = ?"
+    ).bind(userId).first();
+
+    const invitedCount = countRes?.count || 0;
+    const earnings = userRes?.referral_earnings || 0;
+
+    await editMsg(
+      MSG.getReferralMessage(CONFIG.BOT_USERNAME, userId, invitedCount, earnings, CONFIG.REFERRAL_PERCENT),
+      KB.getReferralKeyboard()
+    );
+    return;
+  }
+
+  // --- 📢 CHECK FORCE JOIN BUTTON ---
+  if (data === "check_force_join") {
+    const isJoined = await checkMustJoin(env, userId);
+    if (!isJoined) {
+      await tg(env, "answerCallbackQuery", {
+        callback_query_id: cb.id,
+        text: "❌ You have not joined the channel yet! Please join first.",
+        show_alert: true,
+      });
+      return;
+    }
+
+    // Join ပြီးသွားပါက Welcome / Main Menu ပြသပေးခြင်း
+    await editMsg(
+      MSG.getWelcomeMessage(cb.from.first_name),
+      KB.getMainKeyboard()
+    );
+    return;
+  }
+
+
   // --- A. STOCK GROUP ACTIONS ---
   if (stockGroupId && isMatchChatId(chatId, stockGroupId) && data === "admin_refresh_stock") {
     const counts = await env.DB.prepare("SELECT category, COUNT(*) as count FROM keys GROUP BY category").all();
@@ -747,6 +824,36 @@ async function handleCallback(cb, env) {
         parse_mode: "HTML",
         reply_markup: KB.getMainKeyboard(),
       });
+            // --- 🌟 REFERRAL COMMISSION ---
+      const targetUser = await env.DB.prepare(
+        "SELECT referred_by FROM users WHERE telegram_id = ?"
+      ).bind(targetUserId).first();
+
+      if (targetUser && targetUser.referred_by) {
+        const commissionRate = (CONFIG.REFERRAL_PERCENT || 5) / 100;
+        const bonusAmount = Math.floor(amount * commissionRate);
+
+        if (bonusAmount > 0) {
+          await env.DB.prepare(`
+            UPDATE users 
+            SET balance = balance + ?, 
+                referral_earnings = referral_earnings + ? 
+            WHERE telegram_id = ?
+          `).bind(bonusAmount, bonusAmount, targetUser.referred_by).run();
+
+          try {
+            await tg(env, "sendMessage", {
+              chat_id: targetUser.referred_by,
+              text: `${e("SUCCESS", "🎉")} <b>Referral Bonus Received!</b>\n` +
+                `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
+                `Your invited friend topped up their wallet.\n` +
+                `You earned: <b>+${bonusAmount.toLocaleString()} MMK</b> (${CONFIG.REFERRAL_PERCENT}% bonus) credited to your wallet!`,
+              parse_mode: "HTML"
+            });
+          } catch (e) {}
+        }
+      }
+
       return;
     }
 
@@ -984,8 +1091,8 @@ async function handleCallback(cb, env) {
       `<b>2. Payment Transfer Rules:</b>\n` +
       `<blockquote>• Supported Methods: <b>KBZPay, AYAPay, UABPay</b>.\n` +
       `• <b>Strictly leave the transfer note/remark EMPTY</b>. Do NOT write "VPN", "Key", "Bot", or any related words.\n` +
-      `• <b>Processing Time:</b> Transactions are typically verified within <b>5 minutes to a maximum of 24 hours</b>. Wallet balance will be credited immediately once approved by the Admin Team.\n` +
       `• Violating this rule will result in immediate rejection, and funds will NOT be credited.</blockquote>\n` +
+      `• <b>Processing Time:</b> Transactions are typically verified within <b>5 minutes to a maximum of 24 hours</b>. Wallet balance will be credited immediately once approved by the Admin Team.\n` +
       `<b>3. Fraud Prevention & Zero Tolerance:</b>\n` +
       `<blockquote>• Submitting altered, fake, reused, or forged payment slips will result in an immediate and permanent BAN of your Telegram ID and Account across all our services without warning.</blockquote>\n` +
       `<b>4. Fair Usage Policy:</b>\n` +
@@ -995,6 +1102,7 @@ async function handleCallback(cb, env) {
       `<blockquote>• In the event of network disruption, IP filtering, or server downtime, our team will investigate and restore nodes as quickly as possible (typically within 24 hours).</blockquote>\n` +
       `<b>6. Final Authority:</b>\n` +
       `<blockquote>• In the event of any disputes, transaction discrepancies, or policy enforcement, the final decision rests solely with the Admin Team.</blockquote>\n` +
+      `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
       `${e("WARNING", "⚠️")} <b>By using our bot and depositing funds, you fully agree to comply with all the terms above.</b>`;
     await editMsg(termsMsg, {
       inline_keyboard: [[makeBtn("Main Menu", "callback_data", "menu_home", null, "BTN_HOME")]]

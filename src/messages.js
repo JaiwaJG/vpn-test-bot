@@ -186,3 +186,25 @@ export function getTestKeyExpiredMessage(buyerName) {
     `<i>Tap the button below to get your new Free Trial Key.</i>`
   );
 }
+
+export function getReferralMessage(botUsername, tgId, invitedCount, earnings, percent) {
+  const refLink = `https://t.me/${botUsername}?start=ref_${tgId}`;
+  return `🌟 <b>Referral program</b>\n` +
+    `━━━━━━━━━━━━━━━━━━━━\n\n` +
+    `<blockquote>` +
+    `Share your link and earn <b>${percent}%</b> of every deposit your friends make — <i>forever</i>.` +
+    `</blockquote>\n\n` +
+    `${e("REFERRAL", "🔗")}<b>My Referral Link:</b>\n` +
+    `<code>${refLink}</code>\n\n` +
+    `<blockquote>` +
+    `${e("USERS", "👥")} <b>Invited:</b> ${invitedCount}\n` +
+    `${e("BALANCE", "💰")} <b>Earned:</b> ${Number(earnings || 0).toLocaleString()} MMK` +
+    `</blockquote>`;
+}
+
+export function getMustJoinMessage() {
+  return `⚠️ <b>Join Our Channel First!</b>\n` +
+    `━━━━━━━━━━━━━━━━━━━━\n\n` +
+    `Please join our official channel to use this bot.\n\n` +
+    `After joining, tap <b>"✅ Check / Continue"</b> below.`;
+}

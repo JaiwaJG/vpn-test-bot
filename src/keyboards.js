@@ -19,6 +19,9 @@ export function getMainKeyboard() {
         makeBtn("Terms of Service", "callback_data", "menu_terms", null, "BTN_TERMS")
       ],
       [
+        makeBtn("Referral & Earn", "callback_data", "menu_referral", null, "STAR" )
+      ],
+      [
         makeBtn("Contact Support", "url", `https://t.me/${CONFIG.ADMIN_USERNAME}`, null, "BTN_SUPPORT")
       ]
     ]
@@ -155,6 +158,23 @@ export function getTestKeyKeyboard() {
     inline_keyboard: [
       [makeBtn(" Claim Free Test Key", "callback_data", "exec_claim_test_key", null, "BTN_KEY")],
       [makeBtn(" Back to Home", "callback_data", "menu_home", null, "BTN_HOME")]
+    ]
+  };
+}
+
+export function getReferralKeyboard() {
+  return {
+    inline_keyboard: [
+      [makeBtn(" Back to Home", "callback_data", "menu_home", null, "BTN_HOME")]
+    ]
+  };
+}
+
+export function getMustJoinKeyboard(channelLink) {
+  return {
+    inline_keyboard: [
+      [{ text: "📢 Join Channel", url: channelLink }],
+      [{ text: "✅ Check / Continue", callback_data: "check_force_join" }]
     ]
   };
 }
