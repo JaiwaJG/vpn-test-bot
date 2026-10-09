@@ -375,79 +375,122 @@ async function handleMessage(msg, env) {
       return;
     }
 
+    // Store Analytics Report ထုတ်ပေးသည့် Shared Function
+async function getStoreAnalyticsReport(env) {
+  const fmtNum = (n) => Number(n || 0).toLocaleString();
+  const nowStr = new Date().toLocaleString("en-US", {
+    day: "numeric", month: "short", year: "numeric",
+    hour: "2-digit", minute: "2-digit", hour12: true,
+    timeZone: "Asia/Yangon"
+  });
+
+  // 1. Overall Revenue
+  const totalRevRes = await env.DB.prepare(
+    "SELECT SUM(price) as total_rev, COUNT(*) as total_orders FROM orders WHERE category != 'test'"
+  ).first();
+
+  // 2. Today Sales
+  const todayRes = await env.DB.prepare(
+    "SELECT SUM(price) as today_rev, COUNT(*) as today_orders FROM orders WHERE category != 'test' AND date(datetime(created_at, '+6 hours', '+30 minutes')) = date(datetime('now', '+6 hours', '+30 minutes'))"
+  ).first();
+
+  // 3. Yesterday Sales
+  const yestRes = await env.DB.prepare(
+    "SELECT COALESCE(SUM(price), 0) AS rev, COUNT(*) AS orders FROM orders WHERE category != 'test' AND date(datetime(created_at, '+6 hours', '+30 minutes')) = date(datetime('now', '+6 hours', '+30 minutes', '-1 day'))"
+  ).first();
+
+  // 4. This Month Sales
+  const monthRes = await env.DB.prepare(
+    "SELECT COALESCE(SUM(price), 0) AS rev, COUNT(*) AS orders FROM orders WHERE category != 'test' AND strftime('%Y-%m', datetime(created_at, '+6 hours', '+30 minutes')) = strftime('%Y-%m', datetime('now', '+6 hours', '+30 minutes'))"
+  ).first();
+
+  // 5. Package Breakdown
+  const pkgRows = await env.DB.prepare(
+    "SELECT category, COUNT(*) AS count, COALESCE(SUM(price), 0) AS rev FROM orders WHERE category != 'test' GROUP BY category"
+  ).all();
+
+  let pkgBreakdownText = "";
+  if (pkgRows?.results?.length > 0) {
+    pkgBreakdownText = pkgRows.results.map(r => `• <b>${r.category}:</b> ${r.count} Sold (${fmtNum(r.rev)} MMK)`).join("\n");
+  } else {
+    pkgBreakdownText = "• <i>No sales yet</i>";
+  }
+
+  // 6. Referral Commission
+  const refRes = await env.DB.prepare(
+    "SELECT COALESCE(SUM(referral_earnings), 0) AS total_ref FROM users"
+  ).first();
+
+  // 7. Users Stats
+  const totalUsersRes = await env.DB.prepare("SELECT COUNT(*) as count FROM users").first();
+  const bannedUsersRes = await env.DB.prepare("SELECT COUNT(*) as count FROM users WHERE is_banned = 1").first();
+  const activeKeysRes = await env.DB.prepare("SELECT COUNT(DISTINCT user_id) as count FROM orders").first();
+
+  // 8. Key Stock
+  const stockRes = await env.DB.prepare("SELECT category, COUNT(*) as count FROM keys GROUP BY category").all();
+  const stockMap = { test: 0, "50gb": 0, "100gb": 0, "250gb": 0 };
+  if (stockRes?.results) {
+    for (const row of stockRes.results) {
+      if (stockMap.hasOwnProperty(row.category)) stockMap[row.category] = row.count;
+    }
+  }
+
+  // 9. Pending Slips
+  const pendingAuditRes = await env.DB.prepare(
+    "SELECT COUNT(*) as count FROM topup_requests WHERE status = 'pending'"
+  ).first();
+
+  const reportText =
+    `${e("STATUS", "📊")} <b>Store Analytics & Executive Report</b>\n` +
+    `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
+    `${e("BALANCE", "💰")} <b>Revenue & Cash Flow</b>\n` +
+    `<blockquote>` +
+    `• <b>Today:</b> ${fmtNum(todayRes?.today_rev)} MMK (${fmtNum(todayRes?.today_orders)} Orders)\n` +
+    `• <b>Yesterday:</b> ${fmtNum(yestRes?.rev)} MMK (${fmtNum(yestRes?.orders)} Orders)\n` +
+    `• <b>This Month:</b> ${fmtNum(monthRes?.rev)} MMK (${fmtNum(monthRes?.orders)} Orders)\n` +
+    `• <b>All-Time Revenue:</b> ${fmtNum(totalRevRes?.total_rev)} MMK\n` +
+    `• <b>Total Completed Sales:</b> ${fmtNum(totalRevRes?.total_orders)}` +
+    `</blockquote>\n\n` +
+    `${e("STOCK", "📦")} <b>Package Performance (Sales)</b>\n` +
+    `<blockquote>` +
+    `${pkgBreakdownText}` +
+    `</blockquote>\n\n` +
+    `${e("STAR", "🌟")} <b>Affiliate / Referral Stats</b>\n` +
+    `<blockquote>` +
+    `• <b>Total Commission:</b> ${fmtNum(refRes?.total_ref)} MMK` +
+    `</blockquote>\n\n` +
+    `${e("STOCK", "📦")} <b>Key Inventory (Stock)</b>\n` +
+    `<blockquote>` +
+    `• <b>50GB Keys:</b> ${fmtNum(stockMap["50gb"])} Available\n` +
+    `• <b>100GB Keys:</b> ${fmtNum(stockMap["100gb"])} Available\n` +
+    `• <b>250GB Keys:</b> ${fmtNum(stockMap["250gb"])} Available ${stockMap["250gb"] <= 3 ? "⚠️" : ""}\n` +
+    `• <b>Free Test Keys:</b> ${fmtNum(stockMap["test"])} Available` +
+    `</blockquote>\n\n` +
+    `${e("USERS", "👥")} <b>Users & Security</b>\n` +
+    `<blockquote>` +
+    `• <b>Total Registered:</b> ${fmtNum(totalUsersRes?.count)}\n` +
+    `• <b>Active Key Users:</b> ${fmtNum(activeKeysRes?.count)}\n` +
+    `• <b>Suspended/Banned:</b> ${fmtNum(bannedUsersRes?.count)}` +
+    `</blockquote>\n\n` +
+    `${e("CLOCK", "⏳")} <b>Audit Queue:</b> ${fmtNum(pendingAuditRes?.count)} Pending Slips\n` +
+    `<b>━━━━━━━━━━━━━━━━━━━━</b>\n` +
+    `${e("BTN_REFRESH", "🔄")} <i>Last updated: ${nowStr}</i>`;
+
+  return reportText;
+}
+
+
     // --- STORE ANALYTICS & STATS ---
     const cleanCmd = text.split("@")[0].split(/\s+/)[0].toLowerCase();
     if (cleanCmd === "/stats") {
-      const totalRevRes = await env.DB.prepare(
-        "SELECT SUM(price) as total_rev, COUNT(*) as total_orders FROM orders WHERE category != 'test'"
-      ).first();
-
-      const todayRes = await env.DB.prepare(
-        "SELECT SUM(price) as today_rev, COUNT(*) as today_orders FROM orders WHERE category != 'test' AND date(created_at, '+6 hours 30 minutes') = date('now', '+6 hours 30 minutes')"
-      ).first();
-
-      const totalUsersRes = await env.DB.prepare("SELECT COUNT(*) as count FROM users").first();
-      const bannedUsersRes = await env.DB.prepare("SELECT COUNT(*) as count FROM users WHERE is_banned = 1").first();
-      const activeKeysRes = await env.DB.prepare("SELECT COUNT(DISTINCT user_id) as count FROM orders").first();
-
-      const stockRes = await env.DB.prepare(
-        "SELECT category, COUNT(*) as count FROM keys GROUP BY category"
-      ).all();
-
-      const stockMap = { test: 0, "50gb": 0, "100gb": 0, "250gb": 0 };
-      if (stockRes?.results) {
-        for (const row of stockRes.results) {
-          if (stockMap.hasOwnProperty(row.category)) {
-            stockMap[row.category] = row.count;
-          }
-        }
-      }
-
-      const pendingAuditRes = await env.DB.prepare(
-        "SELECT COUNT(*) as count FROM users WHERE pending_topup_amount > 0"
-      ).first();
-
-      const fmtNum = (n) => Number(n || 0).toLocaleString();
-      const nowStr = new Date().toLocaleString("en-US", {
-        day: "numeric", month: "short", year: "numeric",
-        hour: "2-digit", minute: "2-digit", hour12: true,
-        timeZone: "Asia/Yangon"
-      });
-
-      const statsMsg = 
-        `${e("STATUS", "📊")} <b>Store Analytics & Executive Report</b>\n` +
-        `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
-        `${e("BALANCE", "💰")} <b>Revenue & Performance</b>\n` +
-        `<blockquote>` +
-        `• <b>Today:</b> ${fmtNum(todayRes?.today_rev)} MMK (${fmtNum(todayRes?.today_orders)} Orders)\n` +
-        `• <b>All-Time Revenue:</b> ${fmtNum(totalRevRes?.total_rev)} MMK\n` +
-        `• <b>Total Completed Sales:</b> ${fmtNum(totalRevRes?.total_orders)}` +
-        `</blockquote>\n\n` +
-        `${e("STOCK", "📦")} <b>Key Inventory (Stock)</b>\n` +
-        `<blockquote>` +
-        `• <b>50GB Keys:</b> ${fmtNum(stockMap["50gb"])} Available\n` +
-        `• <b>100GB Keys:</b> ${fmtNum(stockMap["100gb"])} Available\n` +
-        `• <b>250GB Keys:</b> ${fmtNum(stockMap["250gb"])} Available ${stockMap["250gb"] <= 3 ? "⚠️" : ""}\n` +
-        `• <b>Free Test Keys:</b> ${fmtNum(stockMap["test"])} Available` +
-        `</blockquote>\n\n` +
-        `${e("USERS", "👥")} <b>Users & Security</b>\n` +
-        `<blockquote>` +
-        `• <b>Total Registered:</b> ${fmtNum(totalUsersRes?.count)}\n` +
-        `• <b>Active Key Users:</b> ${fmtNum(activeKeysRes?.count)}\n` +
-        `• <b>Suspended/Banned:</b> ${fmtNum(bannedUsersRes?.count)}` +
-        `</blockquote>\n\n` +
-        `${e("CLOCK", "⏳")} <b>Audit Queue:</b> ${fmtNum(pendingAuditRes?.count)} Pending Slips\n` +
-        `<b>━━━━━━━━━━━━━━━━━━━━</b>\n` +
-        `${e("BTN_REFRESH", "🕒")} <i>Last updated: ${nowStr}</i>`;
-
+      const reportText = await getStoreAnalyticsReport(env);
       await tg(env, "sendMessage", {
         chat_id: chatId,
-        text: statsMsg,
+        text: reportText,
         parse_mode: "HTML",
         reply_markup: {
           inline_keyboard: [
-           [makeBtn("Refresh Status", "callback_data", "admin_refresh_stats", "primary", "BTN_REFRESH")]
-          ]
+            [makeBtn("Refresh Status", "callback_data", "admin_refresh_stats", "primary", "BTN_REFRESH")]]
         }
       });
       return;
@@ -744,58 +787,17 @@ async function handleCallback(cb, env) {
       return;
     }
 
-    const totalRevRes = await env.DB.prepare("SELECT SUM(price) as total_rev, COUNT(*) as total_orders FROM orders WHERE category != 'test'").first();
-    const todayRes = await env.DB.prepare("SELECT SUM(price) as today_rev, COUNT(*) as today_orders FROM orders WHERE category != 'test' AND date(created_at, '+6 hours 30 minutes') = date('now', '+6 hours 30 minutes')").first();
-    const totalUsersRes = await env.DB.prepare("SELECT COUNT(*) as count FROM users").first();
-    const bannedUsersRes = await env.DB.prepare("SELECT COUNT(*) as count FROM users WHERE is_banned = 1").first();
-    const activeKeysRes = await env.DB.prepare("SELECT COUNT(DISTINCT user_id) as count FROM orders").first();
-    
-    const stockRes = await env.DB.prepare("SELECT category, COUNT(*) as count FROM keys GROUP BY category").all();
-    const stockMap = { test: 0, "50gb": 0, "100gb": 0, "250gb": 0 };
-    if (stockRes?.results) {
-      for (const row of stockRes.results) {
-        if (stockMap.hasOwnProperty(row.category)) stockMap[row.category] = row.count;
+    const updatedText = await getStoreAnalyticsReport(env);
+
+    await tg(env, "editMessageText", {
+      chat_id: chatId,
+      message_id: messageId,
+      text: updatedText,
+      parse_mode: "HTML",
+      reply_markup: {
+        inline_keyboard: [
+          [makeBtn("Refresh Status", "callback_data", "admin_refresh_stats", "primary", "BTN_REFRESH")]]
       }
-    }
-    const pendingAuditRes = await env.DB.prepare("SELECT COUNT(*) as count FROM users WHERE pending_topup_amount > 0").first();
-
-    const fmtNum = (n) => Number(n || 0).toLocaleString();
-    const nowStr = new Date().toLocaleString("en-US", {
-      day: "numeric", month: "short", year: "numeric",
-      hour: "2-digit", minute: "2-digit", hour12: true,
-      timeZone: "Asia/Yangon"
-    });
-
-    const updatedText = 
-      `${e("STATUS", "📊")} <b>Store Analytics & Executive Report</b>\n` +
-      `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
-      `${e("BALANCE", "💰")} <b>Revenue & Performance</b>\n` +
-      `<blockquote>` +
-      `• <b>Today:</b> ${fmtNum(todayRes?.today_rev)} MMK (${fmtNum(todayRes?.today_orders)} Orders)\n` +
-      `• <b>All-Time Revenue:</b> ${fmtNum(totalRevRes?.total_rev)} MMK\n` +
-      `• <b>Total Completed Sales:</b> ${fmtNum(totalRevRes?.total_orders)}` +
-      `</blockquote>\n\n` +
-      `${e("STOCK", "📦")} <b>Key Inventory (Stock)</b>\n` +
-      `<blockquote>` +
-      `• <b>50GB Keys:</b> ${fmtNum(stockMap["50gb"])} Available\n` +
-      `• <b>100GB Keys:</b> ${fmtNum(stockMap["100gb"])} Available\n` +
-      `• <b>250GB Keys:</b> ${fmtNum(stockMap["250gb"])} Available ${stockMap["250gb"] <= 3 ? "⚠️" : ""}\n` +
-      `• <b>Free Test Keys:</b> ${fmtNum(stockMap["test"])} Available` +
-      `</blockquote>\n\n` +
-      `${e("USERS", "👥")} <b>Users & Security</b>\n` +
-      `<blockquote>` +
-      `• <b>Total Registered:</b> ${fmtNum(totalUsersRes?.count)}\n` +
-      `• <b>Active Key Users:</b> ${fmtNum(activeKeysRes?.count)}\n` +
-      `• <b>Suspended/Banned:</b> ${fmtNum(bannedUsersRes?.count)}` +
-      `</blockquote>\n\n` +
-      `${e("CLOCK", "⏳")} <b>Audit Queue:</b> ${fmtNum(pendingAuditRes?.count)} Pending Slips\n` +
-      `<b>━━━━━━━━━━━━━━━━━━━━</b>\n` +
-      `${e("BTN_REFRESH", "🕒")} <i>Last updated: ${nowStr}</i>`;
-
-    await editMsg(updatedText, {
-      inline_keyboard: [
-        [makeBtn("Refresh Status", "callback_data", "admin_refresh_stats", "primary", "BTN_REFRESH")]
-      ]
     });
     return;
   }

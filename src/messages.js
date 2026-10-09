@@ -189,10 +189,10 @@ export function getTestKeyExpiredMessage(buyerName) {
 
 export function getReferralMessage(botUsername, tgId, invitedCount, earnings, percent) {
   const refLink = `https://t.me/${botUsername}?start=ref_${tgId}`;
-  return `🌟 <b>Referral program</b>\n` +
+  return `${e("STAR", "✨")} <b>Referral program</b>\n` +
     `━━━━━━━━━━━━━━━━━━━━\n\n` +
     `<blockquote>` +
-    `Share your link and earn <b>${percent}%</b> of every deposit your friends make — <i>forever</i>.` +
+    `Share Your Referral Link and earn <b>${percent}%</b> of every deposit your friends make — <i>forever</i>.` +
     `</blockquote>\n\n` +
     `${e("REFERRAL", "🔗")}<b>My Referral Link:</b>\n` +
     `<code>${refLink}</code>\n\n` +
