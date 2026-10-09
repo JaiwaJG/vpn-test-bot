@@ -172,11 +172,13 @@ async function checkMustJoin(env, userId) {
       chat_id: CONFIG.FORCE_JOIN.CHANNEL_ID,
       user_id: userId
     });
-    if (!res?.ok) return false;
-    const status = res.result?.status;
+    // API အလုပ်မလုပ်ပါက သို့မဟုတ် user မဟုတ်ပါက စစ်ဆေးခြင်း
+    if (!res || !res.ok || !res.result) return false;
+    const status = res.result.status;
     return ["member", "administrator", "creator"].includes(status);
   } catch (err) {
-    return false;
+    console.error("Force join error:", err);
+    return true; // Error တက်ရင် bot မရပ်သွားစေဘဲ ယာယီကျော်ခွင့်ပေးခြင်း
   }
 }
 
