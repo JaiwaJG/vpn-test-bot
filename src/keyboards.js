@@ -12,17 +12,14 @@ export function getMainKeyboard() {
       ],
       [
         makeBtn("Deposit", "callback_data", "menu_topup", null, "BTN_DEPOSIT"),
-        makeBtn("My Balance", "callback_data", "menu_balance", null, "BTN_BALANCE")
-      ],
-      [
-        makeBtn("My Profile", "callback_data", "menu_profile_p_1", null, "BTN_PROFILE"),
-        makeBtn("Terms of Service", "callback_data", "menu_terms", null, "BTN_TERMS")
+        makeBtn("My Profile", "callback_data", "menu_profile_p_1", null, "BTN_PROFILE")        
       ],
       [
         makeBtn("Referral & Earn", "callback_data", "menu_referral", null, "STAR" )
       ],
       [
-        makeBtn("Contact Support", "url", `https://t.me/${CONFIG.ADMIN_USERNAME}`, null, "BTN_SUPPORT")
+        makeBtn("Contact Support", "url", `https://t.me/${CONFIG.ADMIN_USERNAME}`, null, "BTN_SUPPORT"),
+        makeBtn("Terms of Service", "callback_data", "menu_terms", null, "BTN_TERMS")
       ]
     ]
   };
@@ -173,8 +170,8 @@ export function getReferralKeyboard() {
 export function getMustJoinKeyboard(channelLink) {
   return {
     inline_keyboard: [
-      [{ text: "📢 Join Channel", url: channelLink }],
-      [{ text: "✅ Check / Continue", callback_data: "check_force_join" }]
+      [makeBtn("Join Channel", "url", channelLink, "primary", "CROWN")],
+      [makeBtn("Check / Continue", "callback_data", "check_force_join", "success", "DONE")]
     ]
   };
 }

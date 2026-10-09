@@ -969,9 +969,22 @@ async function handleCallback(cb, env) {
 
     const orders = ordersRes.results || [];
     const regDate = user.created_at ? MSG.formatMyanmarTime(parseDbDate(user.created_at)) : "N/A";
+    // wallet balance & spent & last topup date
+    const totalSpent = Number(user.total_spent || 0);
+
+    let lastDepositText = "No top-up yet";
+    if (user.last_topup_at) {
+      const parts = String(user.last_topup_at).split(" ");
+      if (parts.length === 2) {
+        const [y, m, d] = parts[0].split("-");
+        lastDepositText = `${d}/${m}/${y}, ${parts[1]}`;
+      } else {
+        lastDepositText = user.last_topup_at;
+      }
+    }
 
     let profMsg = 
-      `${e("PROFILE", "👤")} <b>Your Account Profile</b>\n` +
+      `${e("PROFILE", "👤")} <b>My Profile</b>\n` +
       `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
       `<blockquote>` +
       `• ${e("PROFILE", "👤")} Name: <b>${cb.from.first_name || ""}</b>\n` +
@@ -980,9 +993,10 @@ async function handleCallback(cb, env) {
       `</blockquote>\n\n` +
       `<blockquote>` +
       `• ${e("BALANCE", "💰")} Balance: <b>${balance.toLocaleString()} MMK</b>\n` +
-      `• ${e("STOCK", "📦")} Keys Purchased: <b>${totalOrders} keys</b>\n` +
+      `• ${e("SHOP", "💸")} Total Spent: <b>${totalSpent.toLocaleString()} MMK</b>\n` +
+      `• ${e("DEPOSIT", "💳")} Last Deposit: <b>${lastDepositText}</b>` +
       `</blockquote>\n\n` +
-      `${e("KEY", "🔑")} <b>Your Purchased Keys:</b>\n`;
+      `${e("KEY", "🔑")} <b>Purchased Keys:</b> <b>${totalOrders} keys</b> \n`;
 
     if (orders.length === 0) {
       profMsg += `<i>(No keys purchased yet)</i>`;

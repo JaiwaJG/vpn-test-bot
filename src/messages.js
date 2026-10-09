@@ -190,7 +190,7 @@ export function getTestKeyExpiredMessage(buyerName) {
 export function getReferralMessage(botUsername, tgId, invitedCount, earnings, percent) {
   const refLink = `https://t.me/${botUsername}?start=ref_${tgId}`;
   return `${e("STAR", "✨")} <b>Referral program</b>\n` +
-    `━━━━━━━━━━━━━━━━━━━━\n\n` +
+    `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
     `<blockquote>` +
     `Share Your Referral Link and earn <b>${percent}%</b> of every deposit your friends make — <i>forever</i>.` +
     `</blockquote>\n\n` +
@@ -203,8 +203,8 @@ export function getReferralMessage(botUsername, tgId, invitedCount, earnings, pe
 }
 
 export function getMustJoinMessage() {
-  return `⚠️ <b>Join Our Channel First!</b>\n` +
-    `━━━━━━━━━━━━━━━━━━━━\n\n` +
+  return `${e("CROWN", "👑")} <b>Join Our Channel First!</b>\n` +
+    `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
     `Please join our official channel to use this bot.\n\n` +
-    `After joining, tap <b>"✅ Check / Continue"</b> below.`;
+    `After joining, tap <b>${e("DONE", "✅")} Check / Continue</b> below.`;
 }
