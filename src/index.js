@@ -1017,7 +1017,7 @@ async function handleCallback(cb, env) {
       profMsg += `<i>Tap any key below to view details and access key:</i>`;
     }
 
-    await editMsg(profMsg, KB.getProfileOrdersKeyboard(orders, page, totalPages));
+    await editMsg(profMsg, KB.getProfileKeyboard(orders, page, totalPages));
     return;
   }
 
