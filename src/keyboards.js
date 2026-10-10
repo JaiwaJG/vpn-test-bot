@@ -71,8 +71,12 @@ export function getProfileOrdersKeyboard(orders, page, totalPages) {
   if (navRow.length > 0) inlineKeyboard.push(navRow);
 
   inlineKeyboard.push([
-    makeBtn("Back to Profile", "callback_data", `menu_profile_p_${page}`, null, "BTN_PROFILE"),
-    makeBtn("Back to Home", "callback_data", "menu_home", null, "BTN_HOME")
+      [makeBtn("My Orders", "callback_data", "menu_profile_p_1", null, "BTN_ORDERS")],
+      [
+        makeBtn("Deposit", "callback_data", "menu_deposit", null, "BTN_DEPOSIT"),
+        makeBtn("Refer & Earn", "callback_data", "menu_referral", null, "STAR")
+      ],
+      [makeBtn("Home", "callback_data", "menu_home", null, "BTN_HOME")]
   ]);
   return { inline_keyboard: inlineKeyboard };
 }
