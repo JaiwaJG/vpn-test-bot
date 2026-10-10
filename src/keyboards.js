@@ -56,12 +56,12 @@ export function getTopupKeyboard() {
 export function getProfileKeyboard() {
   return {
     inline_keyboard: [
-      [makeBtn("🧾 My Orders", "callback_data", "menu_orders_p_1", "primary", "BTN_ORDERS")],
+      [makeBtn("My Orders", "callback_data", "menu_orders_p_1", "primary", "BTN_ORDERS")],
       [
-        makeBtn("💼 Deposit", "callback_data", "menu_topup", null, "BTN_DEPOSIT"),
-        makeBtn("⭐ Refer & Earn", "callback_data", "menu_referral", null, "STAR")
+        makeBtn("Deposit", "callback_data", "menu_topup", null, "BTN_DEPOSIT"),
+        makeBtn("Refer & Earn", "callback_data", "menu_referral", null, "STAR")
       ],
-      [makeBtn("🏠 Home", "callback_data", "menu_home", null, "BTN_HOME")]
+      [makeBtn("Home", "callback_data", "menu_home", null, "BTN_HOME")]
     ]
   };
 }
@@ -98,7 +98,7 @@ export function getKeyDetailKeyboard(orderId, page, accessKey) {
     inline_keyboard: [
       [makeBtn("Copy Key", "copy_text", safeKey, "primary", "BTN_KEY")],
       [makeBtn("Delete Key", "callback_data", `del_conf_${orderId}_${page}`, "danger", "BTN_DELETE")],
-      [makeBtn("🔙 Back to Orders", "callback_data", `menu_orders_p_${page}`, null, "BTN_BACK")]
+      [makeBtn("Back to Orders", "callback_data", `menu_orders_p_${page}`, null, "BTN_BACK")]
     ]
   };
 }
