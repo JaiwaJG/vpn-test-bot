@@ -15,7 +15,7 @@ export function getMainKeyboard() {
         makeBtn("My Profile", "callback_data", "menu_profile_p_1", null, "BTN_PROFILE")        
       ],
       [
-        makeBtn("Referral & Earn", "callback_data", "menu_referral", null, "STAR" )
+        makeBtn("Refer & Earn", "callback_data", "menu_referral", null, "STAR" )
       ],
       [
         makeBtn("Contact Support", "url", `https://t.me/${CONFIG.ADMIN_USERNAME}`, null, "BTN_SUPPORT"),
@@ -70,8 +70,24 @@ export function getProfileOrdersKeyboard(orders, page, totalPages) {
   if (page < totalPages) navRow.push(makeBtn("Next", "callback_data", `menu_profile_p_${page + 1}`, null, "BTN_NEXT"));
   if (navRow.length > 0) inlineKeyboard.push(navRow);
 
-  inlineKeyboard.push([makeBtn("Back to Home", "callback_data", "menu_home", null, "BTN_HOME")]);
+  inlineKeyboard.push([
+    makeBtn("Back to Profile", "callback_data", `menu_profile_p_${page}`, null, "BTN_PROFILE"),
+    makeBtn("Back to Home", "callback_data", "menu_home", null, "BTN_HOME")
+  ]);
   return { inline_keyboard: inlineKeyboard };
+}
+
+export function getProfileKeyboard() {
+  return {
+    inline_keyboard: [
+      [makeBtn("My Orders", "callback_data", "menu_profile_p_1", null, "BTN_ORDERS")],
+      [
+        makeBtn("Deposit", "callback_data", "menu_deposit", null, "BTN_DEPOSIT"),
+        makeBtn("Refer & Earn", "callback_data", "menu_referral", null, "STAR")
+      ],
+      [makeBtn("Home", "callback_data", "menu_home", null, "BTN_HOME")]
+    ]
+  };
 }
 
 // Key အသေးစိတ်ကြည့်ရှုသည့် စာမျက်နှာ (Copy & Delete Buttons)
@@ -103,7 +119,7 @@ export function getDeleteConfirmKeyboard(orderId, page) {
 export function getSalesChannelKeyboard() {
   return {
     inline_keyboard: [
-      [makeBtn("Buy Outline Key", "url", `https://t.me/${CONFIG.BOT_USERNAME}?start=menu_buy`, "primary", "BTN_SHOP")]
+      [makeBtn("Buy Outline Key", "url", `https://t.me/${CONFIG.BOT_USERNAME}?start=menu_buy`, "success", "BTN_SHOP")]
     ]
   };
 }

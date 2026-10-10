@@ -777,14 +777,14 @@ async function handleCallback(cb, env) {
     return;
   }
 
-  // --- B. PAYMENT GROUP STATS REFRESH ---
+  // B. PAYMENT GROUP STATS REFRESH
   if (paymentGroupId && isMatchChatId(chatId, paymentGroupId) && data === "admin_refresh_stats") {
     const isAdmin = await checkIsAdmin(env, chatId, cb.from);
     if (!isAdmin) {
       await tg(env, "answerCallbackQuery", {
         callback_query_id: callbackId,
         text: "⚠️ Admins only!",
-        show_alert: true
+        show_alert: true,
       });
       return;
     }
@@ -985,6 +985,13 @@ async function handleCallback(cb, env) {
       }
     }
 
+    // fererral list taking
+    const refCountRes = await env.DB.prepare(
+      "SELECT COUNT(*) as count FROM users WHERE referred_by = ?"
+    ).bind(userId).first();
+    const invitedCount = refCountRes?.count || 0;
+    const earnings = Number(user.referral_earnings || 0);
+
     let profMsg = 
       `${e("PROFILE", "👤")} <b>My Profile</b>\n` +
       `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
@@ -997,6 +1004,10 @@ async function handleCallback(cb, env) {
       `• ${e("BALANCE", "💰")} Balance: <b>${balance.toLocaleString()} MMK</b>\n` +
       `• ${e("SHOP", "💸")} Total Spent: <b>${totalSpent.toLocaleString()} MMK</b>\n` +
       `• ${e("DEPOSIT", "💳")} Last Deposit: <b>${lastDepositText}</b>` +
+      `</blockquote>\n\n` +
+      `<blockquote>` +
+      `•${e("USERS", "👥")} <b>Invited:</b> ${invitedCount}\n` +
+      `•${e("BALANCE", "💰")} <b>Earned:</b> ${Number(earnings || 0).toLocaleString()} MMK` +
       `</blockquote>\n\n` +
       `${e("KEY", "🔑")} <b>Purchased Keys:</b> <b>${totalOrders} keys</b> \n`;
 
