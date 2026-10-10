@@ -73,7 +73,7 @@ export function getProfileOrdersKeyboard(orders, page, totalPages) {
   orders.forEach((o) => {
     // Renders: [🔑 #ID · Category · Price MMK]
     inlineKeyboard.push([
-      makeBtn(`🔑 #${o.id} · ${o.category.toUpperCase()} · ${o.price.toLocaleString()} MMK`, "callback_data", `view_ord_${o.id}_${page}`, null, "BTN_KEY")
+      makeBtn(`#${o.id} · ${o.category.toUpperCase()} · ${o.price.toLocaleString()} MMK`, "callback_data", `view_ord_${o.id}_${page}`, null, "BTN_KEY")
     ]);
   });
 

@@ -40,8 +40,9 @@ export function getWelcomeMessage(firstName) {
     `${e("STAR", "✨")} <b>Referral</b> — Invite friends & earn 5%\n` +
     `${e("TERMS", "📜")} <b>Terms</b> — Store rules & usage policies` +
     `</blockquote>\n\n` +
-    `${e("CROWN", "👑")} <b>Channel: @jaiwateam</b>\n\n` +
-    `<b>Select an option below to continue.</b>`
+    `${e("CROWN", "👑")} <b>Channel: @jaiwateam</b>\n` +
+    `${e("CROWN", "👑")} <b>Sale Proved: @sales_proved</b>\n\n` +
+    `<b>Select an option below to continue.</b> ${e("DOWN", "👇")}`
   );
 }
 
@@ -252,13 +253,19 @@ export function getProfileMessage(data) {
   return msg;
 }
 
-// Step 2: My Orders Summary Message
-export function getOrdersSummaryMessage(totalOrders, totalSpent) {
-  return `${e("SHOP", "🛍")} <b>My Orders</b>\n` +
-    `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
-    `<blockquote>` +
-    `• ${e("STOCK", "📦")} Total Orders: <b>${totalOrders} orders</b>\n` +
-    `• ${e("BALANCE", "💰")} Total Spent: <b>${totalSpent.toLocaleString()} MMK</b>` +
-    `</blockquote>\n\n` +
-    `<i>Select an order below to view your Access Key and details:</i> ${e("DOWN", "👇")}`;
+// Step 2: My Orders Summary Message 
+export function getOrdersSummaryMessage(totalOrders, totalSpent) { 
+  let noteText = "";
+  if (totalOrders > 0) { 
+    noteText = `${e("DOWN", "👇")} <i>Select an order below to view your Access Key and details:</i>`;
+  } else { 
+    noteText = `<i>No orders yet</i>`; 
+  }
+  return `${e("SHOP", "🛍")} <b>My Orders</b>\n` + 
+  `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` + 
+  `<blockquote>` + 
+  `• ${e("STOCK", "📦")} Total Orders: <b>${totalOrders} orders</b>\n` + 
+  `• ${e("BALANCE", "💰")} Total Spent: <b>${totalSpent.toLocaleString()} MMK</b>\n` + 
+  `</blockquote>\n\n` + 
+  `${noteText}`; 
 }
