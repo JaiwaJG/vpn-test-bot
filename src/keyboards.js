@@ -84,7 +84,7 @@ export function getProfileOrdersKeyboard(orders, page, totalPages) {
   if (navRow.length > 0) inlineKeyboard.push(navRow);
 
   inlineKeyboard.push([
-      makeBtn("My Profile", "callback_data", "menu_profile", null, "BTN_BACK"),
+      makeBtn("Back", "callback_data", "menu_profile", null, "BTN_BACK"),
       makeBtn("Home", "callback_data", "menu_home", null, "BTN_HOME")
   ]);
   
@@ -167,8 +167,8 @@ export function getStatsRefreshKeyboard() {
 export function getTestKeyKeyboard() {
   return {
     inline_keyboard: [
-      [makeBtn(" Claim Free Test Key", "callback_data", "exec_claim_test_key", null, "BTN_KEY")],
-      [makeBtn(" Back to Home", "callback_data", "menu_home", null, "BTN_HOME")]
+      [makeBtn("Claim Free Test Key", "callback_data", "exec_claim_test_key", null, "BTN_KEY")],
+      [makeBtn("Back to Home", "callback_data", "menu_home", null, "BTN_HOME")]
     ]
   };
 }
@@ -176,7 +176,7 @@ export function getTestKeyKeyboard() {
 export function getReferralKeyboard() {
   return {
     inline_keyboard: [
-      [makeBtn(" Back to Home", "callback_data", "menu_home", null, "BTN_HOME")]
+      [makeBtn("Back to Home", "callback_data", "menu_home", null, "BTN_HOME")]
     ]
   };
 }
