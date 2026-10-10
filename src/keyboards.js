@@ -12,7 +12,7 @@ export function getMainKeyboard() {
       ],
       [
         makeBtn("Deposit", "callback_data", "menu_topup", null, "BTN_DEPOSIT"),
-        makeBtn("My Profile", "callback_data", "menu_profile_p_1", null, "BTN_PROFILE")        
+        makeBtn("My Profile", "callback_data", "menu_profile", null, "BTN_PROFILE")        
       ],
       [
         makeBtn("Refer & Earn", "callback_data", "menu_referral", null, "STAR" )
@@ -50,61 +50,55 @@ export function getTopupKeyboard() {
   };
 }
 
-// Profile Orders Pagination (2 Columns x 5 Rows)
-export function getProfileOrdersKeyboard(orders, page, totalPages) {
-  let inlineKeyboard = [];
-  let row = [];
+// --- NEW/UPDATED UI FLOW KEYBOARDS ---
 
-  orders.forEach((o) => {
-    row.push(makeBtn(`Key #${o.id} (${o.category.toUpperCase()})`, "callback_data", `view_ord_${o.id}_${page}`));
-    if (row.length === 2) {
-      inlineKeyboard.push(row);
-      row = [];
-    }
-  });
-  if (row.length > 0) inlineKeyboard.push(row);
-
-  let navRow = [];
-  if (page > 1) navRow.push(makeBtn("Prev", "callback_data", `menu_profile_p_${page - 1}`, null, "BTN_PREV"));
-  if (totalPages > 1) navRow.push(makeBtn(`${page}/${totalPages}`, "callback_data", "noop", "success", "BTN_PAGE"));
-  if (page < totalPages) navRow.push(makeBtn("Next", "callback_data", `menu_profile_p_${page + 1}`, null, "BTN_NEXT"));
-  if (navRow.length > 0) inlineKeyboard.push(navRow);
-
-  inlineKeyboard.push([
-      [makeBtn("My Orders", "callback_data", "menu_profile_p_1", null, "BTN_ORDERS")],
-      [
-        makeBtn("Deposit", "callback_data", "menu_deposit", null, "BTN_DEPOSIT"),
-        makeBtn("Refer & Earn", "callback_data", "menu_referral", null, "STAR")
-      ],
-      [makeBtn("Home", "callback_data", "menu_home", null, "BTN_HOME")]
-  ]);
-  return { inline_keyboard: inlineKeyboard };
-}
-
+// Step 1: Profile View
 export function getProfileKeyboard() {
   return {
     inline_keyboard: [
-      [makeBtn("My Orders", "callback_data", "menu_profile_p_1", null, "BTN_ORDERS")],
+      [makeBtn("🧾 My Orders", "callback_data", "menu_orders_p_1", "primary", "BTN_ORDERS")],
       [
-        makeBtn("Deposit", "callback_data", "menu_deposit", null, "BTN_DEPOSIT"),
-        makeBtn("Refer & Earn", "callback_data", "menu_referral", null, "STAR")
+        makeBtn("💼 Deposit", "callback_data", "menu_topup", null, "BTN_DEPOSIT"),
+        makeBtn("⭐ Refer & Earn", "callback_data", "menu_referral", null, "STAR")
       ],
-      [makeBtn("Home", "callback_data", "menu_home", null, "BTN_HOME")]
+      [makeBtn("🏠 Home", "callback_data", "menu_home", null, "BTN_HOME")]
     ]
   };
 }
 
-// Key အသေးစိတ်ကြည့်ရှုသည့် စာမျက်နှာ (Copy & Delete Buttons)
+// Step 2: Profile Orders Pagination (Single column list format as requested)
+export function getProfileOrdersKeyboard(orders, page, totalPages) {
+  let inlineKeyboard = [];
+
+  orders.forEach((o) => {
+    // Renders: [🔑 #ID · Category · Price MMK]
+    inlineKeyboard.push([
+      makeBtn(`🔑 #${o.id} · ${o.category.toUpperCase()} · ${o.price.toLocaleString()} MMK`, "callback_data", `view_ord_${o.id}_${page}`, null, "BTN_KEY")
+    ]);
+  });
+
+  let navRow = [];
+  if (page > 1) navRow.push(makeBtn("Prev", "callback_data", `menu_orders_p_${page - 1}`, null, "BTN_PREV"));
+  if (totalPages > 1) navRow.push(makeBtn(`${page}/${totalPages}`, "callback_data", "noop", "success", "BTN_PAGE"));
+  if (page < totalPages) navRow.push(makeBtn("Next", "callback_data", `menu_orders_p_${page + 1}`, null, "BTN_NEXT"));
+  if (navRow.length > 0) inlineKeyboard.push(navRow);
+
+  inlineKeyboard.push([
+      makeBtn("👤 My Profile", "callback_data", "menu_profile", null, "BTN_PROFILE"),
+      makeBtn("🏠 Home", "callback_data", "menu_home", null, "BTN_HOME")
+  ]);
+  
+  return { inline_keyboard: inlineKeyboard };
+}
+
+// Step 3: Key Detail View (Copy & Delete Buttons returning precisely to originating page)
 export function getKeyDetailKeyboard(orderId, page, accessKey) {
   const safeKey = accessKey || "No-Key-Found";
   return {
     inline_keyboard: [
-      // Tap နှိပ်ရုံဖြင့် Key တန်း copy ယူမည့် Primary Color ခလုတ်
       [makeBtn("Copy Key", "copy_text", safeKey, "primary", "BTN_KEY")],
-      // Danger Color (အနီရောင်) Delete ခလုတ်
       [makeBtn("Delete Key", "callback_data", `del_conf_${orderId}_${page}`, "danger", "BTN_DELETE")],
-      [makeBtn("Back to List", "callback_data", `menu_profile_p_${page}`, null, "BTN_BACK")],
-      [makeBtn("Main Menu", "callback_data", "menu_home", null, "BTN_HOME")]
+      [makeBtn("🔙 Back to Orders", "callback_data", `menu_orders_p_${page}`, null, "BTN_BACK")]
     ]
   };
 }

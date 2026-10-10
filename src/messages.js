@@ -106,7 +106,6 @@ export function getKeyDeliveryMessage(category, price, accessKey) {
     `<code>${accessKey}</code>\n` +
     `</blockquote>\n\n` +
     `${e("UP", "👆")} <i>Tap the key to copy. Your purchased keys are always viewable in ${e("PROFILE", "👤")} <b>My Profile</b>.</i>`
-
   );
 }
 
@@ -208,4 +207,58 @@ export function getMustJoinMessage() {
     `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
     `Please join our official channel to use this bot.\n\n` +
     `After joining, tap <b>${e("DONE", "✅")} Check / Continue</b> below.`;
+}
+
+// --- NEW/UPDATED UI FLOW MESSAGES ---
+
+// Step 1: My Profile Message
+export function getProfileMessage(data) {
+  const { firstName, telegramId, regDate, balance, totalOrders, totalSpent, totalDeposited, invitedCount, earnings, latestOrder, latestOrderDate } = data;
+
+  let msg = `${e("PROFILE", "👤")} <b>My Profile</b>\n` +
+    `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
+    `<blockquote>` +
+    `• ${e("PROFILE", "👤")} Name: <b>${firstName}</b>\n` +
+    `• ${e("USER_ID", "🆔")} Telegram ID: <code>${telegramId}</code>\n` +
+    `• ${e("DATE", "📅")} Member Since: <b>${regDate}</b>` +
+    `</blockquote>\n\n` +
+    `<blockquote>` +
+    `• ${e("BALANCE", "💰")} Available Balance: <b>${balance.toLocaleString()} MMK</b>` +
+    `</blockquote>\n\n` +
+    `<b>📈 Account Stats</b>\n` +
+    `<blockquote>` +
+    `• ${e("STOCK", "📦")} Orders Count: <b>${totalOrders}</b>\n` +
+    `• ${e("SHOP", "💸")} Total Spent: <b>${totalSpent.toLocaleString()} MMK</b>\n` +
+    `• ${e("DEPOSIT", "💳")} Total Deposited: <b>${totalDeposited.toLocaleString()} MMK</b>` +
+    `</blockquote>\n\n` +
+    `<b>👥 Referrals</b>\n` +
+    `<blockquote>` +
+    `• ${e("USERS", "👥")} Invited: <b>${invitedCount} Users</b>\n` +
+    `• ${e("BALANCE", "💰")} Total Earned: <b>${earnings.toLocaleString()} MMK</b>` +
+    `</blockquote>\n\n` +
+    `<b>🛍 Latest Order:</b>\n`;
+
+  if (latestOrder) {
+    const pkg = CONFIG.PACKAGES[latestOrder.category] || { gb: latestOrder.category.toUpperCase() };
+    msg += `<blockquote>` +
+           `• Plan: ${pkg.gb}\n` +
+           `• Price: ${latestOrder.price.toLocaleString()} MMK\n` +
+           `• Date: ${latestOrderDate}` +
+           `</blockquote>`;
+  } else {
+    msg += `<blockquote><i>No orders yet</i></blockquote>`;
+  }
+
+  return msg;
+}
+
+// Step 2: My Orders Summary Message
+export function getOrdersSummaryMessage(totalOrders, totalSpent) {
+  return `${e("SHOP", "🛍")} <b>My Orders</b>\n` +
+    `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
+    `<blockquote>` +
+    `• ${e("STOCK", "📦")} Total Orders: <b>${totalOrders} orders</b>\n` +
+    `• ${e("BALANCE", "💰")} Total Spent: <b>${totalSpent.toLocaleString()} MMK</b>` +
+    `</blockquote>\n\n` +
+    `${e("DOWN", "👇")} <i>Select an order below to view your Access Key and details:</i>`;
 }
