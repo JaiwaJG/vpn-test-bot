@@ -4,6 +4,11 @@ import * as MSG from "./messages.js";
 
 export default {
   async fetch(request, env) {
+
+    //debug code
+    const update = await request.json();
+    console.log("UPDATE RECEIVED:", JSON.stringify(update));
+
     if (request.method !== "POST") return new Response("OK");
 
     try {
