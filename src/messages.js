@@ -225,18 +225,18 @@ export function getProfileMessage(data) {
     `<blockquote>` +
     `• ${e("BALANCE", "💰")} Available Balance: <b>${balance.toLocaleString()} MMK</b>` +
     `</blockquote>\n\n` +
-    `<b>📈 Account Stats</b>\n` +
+    `${e("STATUS", "📊")} <b>Account Stats</b>\n` +
     `<blockquote>` +
     `• ${e("STOCK", "📦")} Orders Count: <b>${totalOrders}</b>\n` +
     `• ${e("SHOP", "💸")} Total Spent: <b>${totalSpent.toLocaleString()} MMK</b>\n` +
     `• ${e("DEPOSIT", "💳")} Total Deposited: <b>${totalDeposited.toLocaleString()} MMK</b>` +
     `</blockquote>\n\n` +
-    `<b>👥 Referrals</b>\n` +
+    `${e("STAR", "✨")} <b>Refer & Earn</b>\n` +
     `<blockquote>` +
     `• ${e("USERS", "👥")} Invited: <b>${invitedCount} Users</b>\n` +
     `• ${e("BALANCE", "💰")} Total Earned: <b>${earnings.toLocaleString()} MMK</b>` +
     `</blockquote>\n\n` +
-    `<b>🛍 Latest Order:</b>\n`;
+    `${e("BTN_ORDERS", "📊")} <b>Latest Order:</b>\n`;
 
   if (latestOrder) {
     const pkg = CONFIG.PACKAGES[latestOrder.category] || { gb: latestOrder.category.toUpperCase() };
