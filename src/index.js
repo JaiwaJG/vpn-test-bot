@@ -17,7 +17,7 @@ export default {
         await handleMessage(update.message, env);
       }
     } catch (err) {
-      console.error("Worker Global Error:", err.message, err.stack);
+      console.error("Worker Execution Error:", err.message, err.stack);
     }
 
     return new Response("OK");
