@@ -40,8 +40,9 @@ export function getWelcomeMessage(firstName) {
     `${e("STAR", "✨")} <b>Referral</b> — Invite friends & earn 5%\n` +
     `${e("TERMS", "📜")} <b>Terms</b> — Store rules & usage policies` +
     `</blockquote>\n\n` +
-    `${e("CROWN", "👑")} <b>Channel: @jaiwateam</b>\n\n` +
-    `<b>Select an option below to continue.</b>`
+    `${e("CROWN", "👑")} <b>Channel: @jaiwateam</b>\n` +
+    `${e("BUY", "🛍")} <b>Sale Proved: @sales_proved/b>\n\n` +
+    `<b>Select an option below to continue.</b> ${e("DOWN", "👇")}`
   );
 }
 
@@ -161,7 +162,7 @@ export function getExpiryReminderMessage(buyerName, category, accessKey, daysLef
   return (
     `${e("WARNING", "⚠️")} <b>Outline Key Expiry Reminder</b>\n` +
     `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
-    `Hello <b>${buyerName}</b>,\n` +
+    `Hello <b>${buyerName}</b> ${e("STAR", "✨")}\n` +
     `Your Outline VPN key for <b>${category.toUpperCase()}</b> will expire in <b>${daysLeft} days</b>.\n\n` +
     `<blockquote>` +
     `• <b>Plan:</b> ${category.toUpperCase()}\n` +
@@ -177,7 +178,7 @@ export function getTestKeyExpiredMessage(buyerName) {
   return (
     `${e("FREEBIES", "🎁")} <b>Trial Period Ended</b>\n` +
     `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
-    `Hello <b>${buyerName}</b>${e("STAR", "✨")},\n` +
+    `Hello <b>${buyerName}</b> ${e("STAR", "✨")},\n` +
     `Your Outline VPN <b>Free Trial Key</b> has expired and has been automatically removed.\n\n` +
     `<blockquote>` +
     `• <b>Status:</b> Expired & Cleared\n` +

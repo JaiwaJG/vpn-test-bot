@@ -531,7 +531,13 @@ async function handleMessage(msg, env) {
       const counts = await env.DB.prepare("SELECT category, COUNT(*) as count FROM keys GROUP BY category").all();
       let stockMap = { test: 0, "50gb": 0, "100gb": 0, "250gb": 0 };
       if (counts.results) counts.results.forEach(r => { stockMap[r.category] = r.count; });
-      const stockMsg = `${e("STATUS", "📊")} <b>Real-Time Key Stock Status</b>\n<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n• ${e("FREEBIES", "🎁")} Free Test Keys: <b>${stockMap.test}</b> items\n• ${e("DOT", "🔹")} 50 GB Keys: <b>${stockMap["50gb"]}</b> items\n• ${e("DOT", "🔹")} 100 GB Keys: <b>${stockMap["100gb"]}</b> items\n• ${e("DOT", "🔹")} 250 GB Keys: <b>${stockMap["250gb"]}</b> items\n`;
+      const stockMsg = 
+      `${e("STATUS", "📊")} <b>Real-Time Key Stock Status</b>\n` +
+      `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
+      `• ${e("FREEBIES", "🎁")} Free Test Keys: <b>${stockMap.test}</b> items\n` +
+      `• ${e("DOT", "🔹")} 50 GB Keys: <b>${stockMap["50gb"]}</b> items\n` +
+      `• ${e("DOT", "🔹")} 100 GB Keys: <b>${stockMap["100gb"]}</b> items\n` +
+      `• ${e("DOT", "🔹")} 250 GB Keys: <b>${stockMap["250gb"]}</b> items\n`;
       await tg(env, "sendMessage", { chat_id: chatId, text: stockMsg, parse_mode: "HTML", reply_markup: KB.getStockRefreshKeyboard() });
       return;
     }
@@ -598,7 +604,13 @@ async function handleCallback(cb, env) {
     const counts = await env.DB.prepare("SELECT category, COUNT(*) as count FROM keys GROUP BY category").all();
     let stockMap = { test: 0, "50gb": 0, "100gb": 0, "250gb": 0 };
     if (counts.results) counts.results.forEach(r => { stockMap[r.category] = r.count; });
-    const stockMsg = `${e("STATUS", "📊")} <b>Real-Time Key Stock Status</b>\n<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n• ${e("FREEBIES", "🎁")} Free Test Keys: <b>${stockMap.test}</b> items\n• ${e("DOT", "🔹")} 50 GB Keys: <b>${stockMap["50gb"]}</b> items\n• ${e("DOT", "🔹")} 100 GB Keys: <b>${stockMap["100gb"]}</b> items\n• ${e("DOT", "🔹")} 250 GB Keys: <b>${stockMap["250gb"]}</b> items\n`;
+    const stockMsg = 
+    `${e("STATUS", "📊")} <b>Real-Time Key Stock Status</b>\n` +
+    `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
+    `• ${e("FREEBIES", "🎁")} Free Test Keys: <b>${stockMap.test}</b> items\n` +
+    `• ${e("DOT", "🔹")} 50 GB Keys: <b>${stockMap["50gb"]}</b> items\n` +
+    `• ${e("DOT", "🔹")} 100 GB Keys: <b>${stockMap["100gb"]}</b> items\n` +
+    `• ${e("DOT", "🔹")} 250 GB Keys: <b>${stockMap["250gb"]}</b> items\n`;
     await editMsg(stockMsg, KB.getStockRefreshKeyboard());
     return;
   }
@@ -626,7 +638,11 @@ async function handleCallback(cb, env) {
       ]);
 
       await tg(env, "editMessageCaption", { chat_id: chatId, message_id: messageId, caption: (cb.message.caption || "") + `\n\n🟢 <b>APPROVED (+${amount.toLocaleString()} MMK) by Admin</b>`, parse_mode: "HTML" });
-      await tg(env, "sendMessage", { chat_id: targetUserId, text: `${e("SUCCESS", "🎉")} <b>Deposit Approved!</b>\n\nYour wallet has been credited with <b>+${amount.toLocaleString()} MMK</b>.\nYou can now purchase Outline VPN keys anytime! ${e("STAR", "✨")}`, parse_mode: "HTML", reply_markup: KB.getMainKeyboard() });
+      await tg(env, "sendMessage", { chat_id: targetUserId, text: 
+        `${e("SUCCESS", "🎉")} <b>Deposit Approved!</b>\n` +
+        `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
+        `Your wallet has been credited with <b>+${amount.toLocaleString()} MMK</b>.\n` +
+        `You can now purchase Outline VPN keys anytime! ${e("STAR", "✨")}`, parse_mode: "HTML", reply_markup: KB.getMainKeyboard() });
       
       const targetUser = await env.DB.prepare("SELECT referred_by FROM users WHERE telegram_id = ?").bind(targetUserId).first();
       if (targetUser && targetUser.referred_by) {
@@ -789,7 +805,7 @@ async function handleCallback(cb, env) {
       `${e("WARNING", "⚠️")} <b>Delete Confirmation</b>\n` +
       `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
       `Are you sure you want to permanently delete Key (#${orderId}) from your profile history?\n\n` +
-      `<i>(Notice: This action cannot be undone and your key will be removed permanently)</i>`;
+      `<b>(Notice: This action cannot be undone and your key will be removed permanently.)</b>`;
 
     await editMsg(warnMsg, KB.getDeleteConfirmKeyboard(orderId, returnPage || 1));
     return;
@@ -813,7 +829,7 @@ async function handleCallback(cb, env) {
 
     await editMsg(finishMsg, {
       inline_keyboard: [
-        [makeBtn("🔙 Back to Orders", "callback_data", "menu_orders_p_1", null, "BTN_ORDERS")],
+        [makeBtn("Back to Orders", "callback_data", "menu_orders_p_1", null, "BTN_ORDERS")],
         [makeBtn("Main Menu", "callback_data", "menu_home", null, "BTN_HOME")]
       ]
     });
@@ -860,7 +876,12 @@ async function handleCallback(cb, env) {
   // Custom Topup Entry Prompt
   if (data === "topup_custom") {
     await env.DB.prepare("UPDATE users SET pending_topup_amount = -1 WHERE telegram_id = ?").bind(userId).run();
-    const customPromptMsg = `${e("CUSTOM", "✍️")} <b>Enter Custom Amount</b>\n<b>━━━━━━━━━━━━━━━━━━━━</b>\n\nType the amount you wish to deposit in digits and send it into this chat:\n\n• Minimum Deposit: <b>${CONFIG.PAYMENT.MIN_TOPUP.toLocaleString()} MMK</b>\n• Examples: <code>2500</code>, <code>5000</code> or <code>20000</code>`;
+    const customPromptMsg = 
+    `${e("CUSTOM", "✍️")} <b>Enter Custom Amount</b>\n` +
+    `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
+    `Type the amount you wish to deposit in digits and send it into this chat:\n\n` +
+    `• Minimum Deposit: <b>${CONFIG.PAYMENT.MIN_TOPUP.toLocaleString()} MMK</b>\n` +
+    `• Examples: <code>2500</code>, <code>5000</code> or <code>20000</code>`;
     await editMsg(customPromptMsg, {
       inline_keyboard: [[makeBtn("Deposit", "callback_data", "menu_topup", null, "BTN_DEPOSIT")]]
     });
@@ -890,7 +911,11 @@ async function handleCallback(cb, env) {
 
     if (balance < price) {
       await editMsg(
-        `${e("UNSTOCK", "😔")} <b>Insufficient Wallet Balance!</b>\n<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n• Plan Price: <b>${price.toLocaleString()} MMK</b>\n• Your Balance: <b>${balance.toLocaleString()} MMK</b>\n\nPlease top up your wallet balance to complete this purchase.`,
+        `${e("UNSTOCK", "😔")} <b>Insufficient Wallet Balance!</b>\n` +
+        `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
+        `• Plan Price: <b>${price.toLocaleString()} MMK</b>\n` +
+        `• Your Balance: <b>${balance.toLocaleString()} MMK</b>\n\n` +
+        `Please top up your wallet balance to complete this purchase.`,
         {
           inline_keyboard: [
             [makeBtn("Deposit Fund", "callback_data", "menu_topup", null, "BTN_DEPOSIT")],
@@ -905,7 +930,9 @@ async function handleCallback(cb, env) {
 
     if (!keyItem) {
       await editMsg(
-        `${e("UNSTOCK", "😔")} <b>Stock Unavailable!</b>\n<b>━━━━━━━━━━━━━━━━━━━━</b>\n\nWe are currently out of stock for <b>[${category.toUpperCase()}]</b>. Admin has been notified to restock immediately.`,
+        `${e("UNSTOCK", "😔")} <b>Stock Unavailable!</b>\n` +
+        `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
+        `We are currently out of stock for <b>[${category.toUpperCase()}]</b>. Admin has been notified to restock immediately.`,
         {
           inline_keyboard: [
             [makeBtn("Back to Plans", "callback_data", "menu_buy", null, "BTN_SHOP")],
@@ -954,7 +981,12 @@ async function handleCallback(cb, env) {
           const alertTitle = remainingStock === 0 ? `${e("ALARM", "🚨")} <b>[OUT OF STOCK ALERT]</b>` : `${e("WARNING", "⚠️")} <b>[LOW STOCK ALERT]</b>`;
           await tg(env, "sendMessage", {
             chat_id: stockGroupId,
-            text: `<b>${alertTitle}</b>\n<b>━━━━━━━━━━━━━━━━━━━━</b>\n${e("STOCK", "📦")} <b>Package:</b> ${category.toUpperCase()}\n${e("STATUS", "📊")} <b>Remaining Stock:</b> <b>${remainingStock} keys left!</b>\n\n<i>Please restock quickly using /add_${category}</i>`,
+            text: 
+            `<b>${alertTitle}</b>\n` +
+            `<b>━━━━━━━━━━━━━━━━━━━━</b>\n` +
+            `${e("STOCK", "📦")} <b>Package:</b> ${category.toUpperCase()}\n` +
+            `${e("STATUS", "📊")} <b>Remaining Stock:</b> <b>${remainingStock} keys left!</b>\n\n` +
+            `<i>Please restock quickly using /add_${category}</i>`,
             parse_mode: "HTML"
           });
         }
@@ -977,7 +1009,14 @@ async function handleCallback(cb, env) {
         const daysLeft = Math.floor(diffMs / (1000 * 60 * 60 * 24));
         const hoursLeft = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
 
-        const claimedText = `${e("WARNING", "⚠️")} <b>Test Key Already Claimed!</b>\n<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n<blockquote>• ${e("DATE", "📅")} Claimed On: <b>${MSG.formatMyanmarTime(claimedDate)}</b>\n• ${e("CLOCK", "⏳")} Next Available: <b>${MSG.formatMyanmarTime(nextAvailDate)}</b></blockquote>\n\n<i>You can claim another test key in <b>${daysLeft} days and ${hoursLeft} hours</b>.</i>`;
+        const claimedText = 
+        `${e("WARNING", "⚠️")} <b>Test Key Already Claimed!</b>\n` +
+        `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
+        `<blockquote>` +
+        `• ${e("DATE", "📅")} Claimed On: <b>${MSG.formatMyanmarTime(claimedDate)}</b>\n` +
+        `• ${e("CLOCK", "⏳")} Next Available: <b>${MSG.formatMyanmarTime(nextAvailDate)}</b>` +
+        `</blockquote>\n\n` +
+        `<i>You can claim another test key in <b>${daysLeft} days and ${hoursLeft} hours</b>.</i>`;
 
         await editMsg(claimedText, {
           inline_keyboard: [
@@ -1026,7 +1065,12 @@ async function handleCallback(cb, env) {
     await env.DB.prepare("INSERT INTO orders (user_id, category, access_key, price) VALUES (?, 'test', ?, 0)").bind(userId, testKeyItem.access_key).run();
 
     await editMsg(
-      `${e("SUCCESS", "🎉")} <b>Your Free Test Key is Ready!</b>\n<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n${e("KEY", "🔑")} <b>Access Key:</b>\n<blockquote><code>${testKeyItem.access_key}</code>\n</blockquote>\n\n${e("DOWN", "👇")} <i>Tap the copy button below or tap the code to copy ${e("KEY", "🔑")} Test Key.</i>`,
+      `${e("SUCCESS", "🎉")} <b>Your Free Test Key is Ready!</b>\n` +
+      `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
+      `${e("KEY", "🔑")} <b>Access Key:</b>\n` +
+      `<blockquote><code>${testKeyItem.access_key}</code>\n` +
+      `</blockquote>\n\n` +
+      `${e("DOWN", "👇")} <i>Tap the copy button below or tap the code to copy ${e("KEY", "🔑")} Test Key.</i>`,
       KB.getTestKeyActionKeyboard(testKeyItem.access_key)
     );
     return;
@@ -1037,7 +1081,11 @@ async function handleCallback(cb, env) {
     const existingTest = await env.DB.prepare("SELECT access_key FROM orders WHERE user_id = ? AND category = 'test' ORDER BY created_at DESC LIMIT 1").bind(userId).first();
     const keyStr = existingTest?.access_key || "Key record not found.";
     await editMsg(
-      `${e("KEY", "🔑")} <b>My Active Free Test Key</b>\n<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n<blockquote><code>${keyStr}</code>\n</blockquote>\n\n${e("DOWN", "👇")} <i>Tap the copy button below or tap the code to copy ${e("KEY", "🔑")} Test Key.</i>`,
+      `${e("KEY", "🔑")} <b>My Active Free Test Key</b>\n` +
+      `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
+      `<blockquote><code>${keyStr}</code>\n` +
+      `</blockquote>\n\n` +
+      `${e("DOWN", "👇")} <i>Tap the copy button below or tap the code to copy ${e("KEY", "🔑")} Test Key.</i>`,
       KB.getTestKeyActionKeyboard(keyStr)
     );
     return;
