@@ -40,9 +40,8 @@ export function getWelcomeMessage(firstName) {
     `${e("STAR", "✨")} <b>Referral</b> — Invite friends & earn 5%\n` +
     `${e("TERMS", "📜")} <b>Terms</b> — Store rules & usage policies` +
     `</blockquote>\n\n` +
-    `${e("CROWN", "👑")} <b>Channel: @jaiwateam</b>\n` +
-    `${e("BUY", "🛍")} <b>Sale Proved: @sales_proved/b>\n\n` +
-    `<b>Select an option below to continue.</b> ${e("DOWN", "👇")}`
+    `${e("CROWN", "👑")} <b>Channel: @jaiwateam</b>\n\n` +
+    `<b>Select an option below to continue.</b>`
   );
 }
 
@@ -162,7 +161,7 @@ export function getExpiryReminderMessage(buyerName, category, accessKey, daysLef
   return (
     `${e("WARNING", "⚠️")} <b>Outline Key Expiry Reminder</b>\n` +
     `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
-    `Hello <b>${buyerName}</b> ${e("STAR", "✨")}\n` +
+    `Hello <b>${buyerName}</b>,\n` +
     `Your Outline VPN key for <b>${category.toUpperCase()}</b> will expire in <b>${daysLeft} days</b>.\n\n` +
     `<blockquote>` +
     `• <b>Plan:</b> ${category.toUpperCase()}\n` +
@@ -178,7 +177,7 @@ export function getTestKeyExpiredMessage(buyerName) {
   return (
     `${e("FREEBIES", "🎁")} <b>Trial Period Ended</b>\n` +
     `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
-    `Hello <b>${buyerName}</b> ${e("STAR", "✨")},\n` +
+    `Hello <b>${buyerName}</b>${e("STAR", "✨")},\n` +
     `Your Outline VPN <b>Free Trial Key</b> has expired and has been automatically removed.\n\n` +
     `<blockquote>` +
     `• <b>Status:</b> Expired & Cleared\n` +
@@ -226,18 +225,18 @@ export function getProfileMessage(data) {
     `<blockquote>` +
     `• ${e("BALANCE", "💰")} Available Balance: <b>${balance.toLocaleString()} MMK</b>` +
     `</blockquote>\n\n` +
-    `${e("STATUS", "📊")} <b>Account Stats</b>\n` +
+    `${e("STATS", "📈")}<b>Account Stats</b>\n` +
     `<blockquote>` +
     `• ${e("STOCK", "📦")} Orders Count: <b>${totalOrders}</b>\n` +
     `• ${e("SHOP", "💸")} Total Spent: <b>${totalSpent.toLocaleString()} MMK</b>\n` +
     `• ${e("DEPOSIT", "💳")} Total Deposited: <b>${totalDeposited.toLocaleString()} MMK</b>` +
     `</blockquote>\n\n` +
-    `${e("STAR", "✨")} <b>Refer & Earn</b>\n` +
+    `${e("REFERRAL", "🔗")}<b>Referrals</b>\n` +
     `<blockquote>` +
     `• ${e("USERS", "👥")} Invited: <b>${invitedCount} Users</b>\n` +
     `• ${e("BALANCE", "💰")} Total Earned: <b>${earnings.toLocaleString()} MMK</b>` +
     `</blockquote>\n\n` +
-    `${e("STOCK", "📦")} <b>Latest Order:</b>\n`;
+    `${e("STOCK", "👥")}<b>Latest Order:</b>\n`;
 
   if (latestOrder) {
     const pkg = CONFIG.PACKAGES[latestOrder.category] || { gb: latestOrder.category.toUpperCase() };
@@ -255,7 +254,7 @@ export function getProfileMessage(data) {
 
 // Step 2: My Orders Summary Message
 export function getOrdersSummaryMessage(totalOrders, totalSpent) {
-  return `${e("STOCK", "📦")} <b>My Orders</b>\n` +
+  return `${e("SHOP", "🛍")} <b>My Orders</b>\n` +
     `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
     `<blockquote>` +
     `• ${e("STOCK", "📦")} Total Orders: <b>${totalOrders} orders</b>\n` +
