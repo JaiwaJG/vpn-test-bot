@@ -237,7 +237,7 @@ export function getProfileMessage(data) {
     `• ${e("USERS", "👥")} Invited: <b>${invitedCount} Users</b>\n` +
     `• ${e("BALANCE", "💰")} Total Earned: <b>${earnings.toLocaleString()} MMK</b>` +
     `</blockquote>\n\n` +
-    `${e("BTN_ORDERS", "📊")} <b>Latest Order:</b>\n`;
+    `${e("STOCK", "📦")} <b>Latest Order:</b>\n`;
 
   if (latestOrder) {
     const pkg = CONFIG.PACKAGES[latestOrder.category] || { gb: latestOrder.category.toUpperCase() };
@@ -255,11 +255,11 @@ export function getProfileMessage(data) {
 
 // Step 2: My Orders Summary Message
 export function getOrdersSummaryMessage(totalOrders, totalSpent) {
-  return `${e("SHOP", "🛍")} <b>My Orders</b>\n` +
+  return `${e("STOCK", "📦")} <b>My Orders</b>\n` +
     `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
     `<blockquote>` +
     `• ${e("STOCK", "📦")} Total Orders: <b>${totalOrders} orders</b>\n` +
     `• ${e("BALANCE", "💰")} Total Spent: <b>${totalSpent.toLocaleString()} MMK</b>` +
     `</blockquote>\n\n` +
-    `${e("DOWN", "👇")} <i>Select an order below to view your Access Key and details:</i>`;
+    `<i>Select an order below to view your Access Key and details:</i> ${e("DOWN", "👇")}`;
 }

@@ -84,7 +84,7 @@ export function getProfileOrdersKeyboard(orders, page, totalPages) {
   if (navRow.length > 0) inlineKeyboard.push(navRow);
 
   inlineKeyboard.push([
-      makeBtn("My Profile", "callback_data", "menu_profile", null, "BTN_PROFILE"),
+      makeBtn("My Profile", "callback_data", "menu_profile", null, "BTN_BACK"),
       makeBtn("Home", "callback_data", "menu_home", null, "BTN_HOME")
   ]);
   
