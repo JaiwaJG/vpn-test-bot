@@ -41,7 +41,7 @@ export function getWelcomeMessage(firstName) {
     `${e("TERMS", "📜")} <b>Terms</b> — Store rules & usage policies` +
     `</blockquote>\n\n` +
     `${e("CROWN", "👑")} <b>Channel: @jaiwateam</b>\n` +
-    `${e("CROWN", "👑")} <b>Sale Proved: @sales_proved</b>\n\n` +
+    `${e("BUY", "👑")} <b>Sale Proved: @sales_proved</b>\n\n` +
     `<b>Select an option below to continue.</b> ${e("DOWN", "👇")}`
   );
 }

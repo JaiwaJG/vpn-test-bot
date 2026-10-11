@@ -201,6 +201,13 @@ async function handleMessage(msg, env) {
   const paymentGroupId = String(env.PAYMENT_GROUP_ID || "").trim();
   const stockGroupId = String(env.STOCK_GROUP_ID || "").trim();
 
+  // Group ထဲက command မှန်သမျှကို auto ဖျက်ပေးခြင်း
+  if (msg.chat.type !== "private" && msg.text && msg.text.startsWith("/")) {
+    try {
+      await tg(env, "deleteMessage", { chat_id: msg.chat.id, message_id: msg.message_id });
+    } catch (e) {}
+  }
+
   // --- 1. USER PRIVATE CHAT ---
   if (!chatId.startsWith("-")) {
     try {
@@ -604,14 +611,26 @@ async function handleCallback(cb, env) {
   }
 
   // --- B. PAYMENT GROUP STATS REFRESH ---
-  if (paymentGroupId && isMatchChatId(chatId, paymentGroupId) && data === "admin_refresh_stats") {
-    const isAdmin = await checkIsAdmin(env, chatId, cb.from);
-    if (!isAdmin) {
-      await tg(env, "answerCallbackQuery", { callback_query_id: callbackId, text: "⚠️ Admins only!", show_alert: true });
-      return;
-    }
-    // Dummy invoke for group refresh bypass via external function logic (handled in handleMessage). For brevity inline block skip.
-    return;
+// --- B. PAYMENT GROUP STATS REFRESH --- 
+  if (paymentGroupId && isMatchChatId(chatId, paymentGroupId) && data === "admin_refresh_stats") { const isAdmin = await checkIsAdmin(env, chatId, cb.from); if (!isAdmin) { await tg(env, "answerCallbackQuery", { callback_query_id: callbackId, text: "⚠️ Admins only!", show_alert: true }); return; }
+// ၁။ Analytics Report စာသား အသစ်ပြန်ဆွဲယူခြင်း
+  const reportText = await getStoreAnalyticsReport(env);
+
+  // ၂။ လက်ရှိ message ကို update လုပ်ခြင်း
+  await tg(env, "editMessageText", {
+    chat_id: chatId,
+    message_id: cb.message.message_id,
+    text: reportText,
+    parse_mode: "HTML",
+    reply_markup: KB.getStatsRefreshKeyboard()
+  });
+
+  // ၃။ Loading ပျောက်စေရန် Telegram သို့ အကြောင်းပြန်ခြင်း
+  await tg(env, "answerCallbackQuery", {
+    callback_query_id: callbackId,
+    text: `${e("BTN_REFRESH", "🔄")} Stats Updated!`
+  });
+  return;
   }
 
   // --- C. PAYMENT AUDIT ACTIONS ---
