@@ -114,7 +114,7 @@ export function getKeyDeliveryMessage(category, price, accessKey) {
 export function getChannelSaleMessage(buyerName, category, price, accessKey) {
   const pkg = CONFIG.PACKAGES[category] || { days: 30, gb: category };
   return (
-    `${e("SUCCESS", "🎉")} <b>New Order Completed!</b>\n` +
+    `${e("SUCCESS", "🎉")} <b>Purchased Completed!</b>\n` +
     `<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n` +
     `<blockquote>` +
     `${e("PROFILE", "👤")} <b>Customer:</b> ${maskName(buyerName)}\n` +
